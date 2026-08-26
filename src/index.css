@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root {
+    @apply h-full;
+  }
+  body {
+    @apply bg-ink-50 text-ink-900 antialiased;
+    font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  }
+}
+
+@layer components {
+  .tap {
+    @apply transition active:scale-95 active:opacity-70;
+  }
+  .card {
+    @apply bg-white rounded-card shadow-card;
+  }
+  /* 表单输入框：白底 + 灰边 + 圆角 */
+  .form-input {
+    @apply w-full h-10 px-3 bg-white border border-ink-200 rounded text-[13px] text-ink-900 placeholder:text-ink-400 focus:border-brand focus:outline-none transition;
+  }
+  .group-title {
+    @apply flex items-center gap-2 px-4 py-3 text-[15px] font-medium text-ink-900;
+  }
+  .group-title::before {
+    content: '';
+    @apply inline-block w-1 h-4 bg-brand rounded-sm;
+  }
+  /* 隐藏滚动条但保持滚动 */
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { scrollbar-width: none; -ms-overflow-style: none; }
+}
+
+/* iconfont 字体 - 后续接入 iconfont.cn 后启用
+@font-face {
+  font-family: 'iconfont';
+  src: url('/iconfont.woff2') format('woff2'),
+       url('/iconfont.woff') format('woff');
+  font-display: swap;
+}
+.iconfont {
+  font-family: 'iconfont' !important;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+*/
