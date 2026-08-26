@@ -1,0 +1,25 @@
+{
+  "name": "CRM 业务管理系统",
+  "short_name": "CRM",
+  "description": "央广时代 CRM App 移动端",
+  "start_url": "/CRM-app/",
+  "scope": "/CRM-app/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#2D7FF9",
+  "icons": [
+    {
+      "src": "/CRM-app/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/CRM-app/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
