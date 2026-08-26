@@ -1141,7 +1141,7 @@ export default function MediaQuarterlyReportPage({ node }) {
       <StatCardsRow kpis={currentKpis} activeCard={activeCard} onCardClick={handleCardChange}/>
 
       {/* 二级：核心消耗指标卡组（一级 KPI 卡被选中后才显示） */}
-      {activeCard && data.drilldown?.[activeCard] && (
+      {activeCard === 'tt-lpc' && data.drilldown?.[activeCard] && (
         <>
           <div className="group-title">
             <span className="group-title-bar"/>
@@ -1156,7 +1156,7 @@ export default function MediaQuarterlyReportPage({ node }) {
       )}
 
       {/* 三级：二代/非二代·交易/线索拆分卡组（一级 KPI 卡被选中后默认展开；切 trade/lead 时只显示对应 2 张） */}
-      {activeCard && data.drilldown?.[activeCard] && visibleSplits.length > 0 && (
+      {activeCard === 'tt-lpc' && data.drilldown?.[activeCard] && visibleSplits.length > 0 && (
         <>
           <div className="group-title">
             <span className="group-title-bar"/>
