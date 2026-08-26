@@ -11,3 +11,12 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </HashRouter>
   </React.StrictMode>,
 )
+
+// 注册 PWA Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/CRM-app/sw.js').catch((err) => {
+      console.warn('SW 注册失败:', err)
+    })
+  })
+}
