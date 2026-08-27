@@ -108,7 +108,8 @@ crm-app/
 │   │   ├── TabBar.jsx      # 底部 4-Tab
 │   │   ├── FAB.jsx
 │   │   ├── FeatureIcon.jsx # 应用宫格图标（含 iconfont 兜底）
-│   │   └── FormKit.jsx     # Section / Field / SelectField / FormActions
+│   │   ├── FormKit.jsx     # Section / Field / SelectField / FormActions
+│   │   └── DateRangePicker/  # 钉钉式日期区间选择器（portal 渲染）
 │   ├── pages/              # 一个子目录 = 一个路由页
 │   ├── data/
 │   │   └── mock.js         # 演示数据 + 菜单树（MENU_TREE）
@@ -134,6 +135,7 @@ crm-app/
 - **底部按钮 sticky**：所有表单底部按钮（取消/确定/返回）使用 `sticky bottom-0` 而非 `fixed`，避免在桌面浏览器跨出 PhoneFrame。
 - **品牌色统一**：所有主操作按钮统一使用 `bg-brand`（白字），不再用绿色按钮。
 - **筛选条件独立**：首页三大板块各自独立时间 chip，互不污染。
+- **日期筛选统一 DateRangePicker**：所有列表/筛选页面的日期输入（含"创建日期 / 申请日期 / 操作时间 / 统计日期"等）一律复用 `src/components/DateRangePicker`，**禁止在业务代码里手写 `<input type="date">` 或自造"不限"文案**。组件默认对齐 `MediaDailyReportPage` 的本地版本：未选时 chip 显示「请选择」，日历内仅 4 个 preset（今日/昨日/近7日/近30日），底部按钮为「清空 + 确定」。
 
 ---
 
@@ -204,17 +206,24 @@ crm-app/
 
 ### 钉钉式查询条件（所有列表页通用范式）
 
+所有 Pattern B 列表页（主体管理、项目列表、集团列表、任务列表、政策列表、KPI 变更记录、审批中心等）的顶部查询卡统一采用「**单行：DateRangePicker + 漏斗**」结构：
+
 ```
 ┌────────────────────────────────────────────┐
-│  [字段 ▾]  [ 输入框 / 搜索 ]      [🔍]      │  ← 第 1 行：字段切换 + 关键字
-│  [Chip 1] [Chip 2]              [🔽 更多]   │  ← 第 2 行：chip 多维 + 高级筛选
+│  [字段 ▾]  [ DateRangePicker 📅 ]   [🔽]   │  ← 单行：日期 chip + 高级筛选漏斗
+│  [Chip 已选 1] [Chip 已选 2] [清空]        │  ← 已选条件 chips（漏斗产生）
 └────────────────────────────────────────────┘
 ```
 
-- 字段 chip：点击弹出「选择搜索字段」底部 sheet。
-- 输入框：圆角输入，`h-9 bg-ink-50`，支持一键清除。
-- 搜索 icon：仅第 1 行右侧放置。
-- 更多筛选按钮：右下角，激活时显示数字角标。
+- 行内默认条件：`DateRangePicker`（创建日期 / 申请日期 / 操作时间 / 统计日期…）
+  - 未选 → chip 显示 **「请选择」**（灰色 ink-400）
+  - 已选 → 显示日期（`2026-08-26`）或区间（`08-26 ~ 08-30`）
+  - 点击 → 弹出日历浮层（4 preset + 月份导航 + 7×6 网格 + 清空/确定）
+- 漏斗按钮：右下角，激活时显示数字角标（高级筛选条件数）
+- 高级筛选 Sheet：左字段栏（100px 宽）+ 右值区动态切换，支持 input / select / DateRangePicker 三种 kind
+- 已选条件 chips：高级筛选 Sheet 内非空条件折叠显示在行 2，可点击 × 单项清除
+
+> 早期版本曾使用「不限」chip 作为清空入口，已统一改为日历底部「**清空**」按钮 + 确定（清空后 chip 显示「请选择」），业务代码中**不得出现"不限"字样**。
 
 ### 钉钉式卡片
 
@@ -1017,6 +1026,26 @@ crm-app/
 | `FAB.jsx` | 通用悬浮按钮（支持右下角 + 左下角）。 |
 | `FeatureIcon.jsx` | 应用宫格图标（自绘 SVG + iconfont 兜底），按 label 模糊匹配。 |
 | `FormKit.jsx` | `TopBar` / `Section` / `Field` / `SelectField` / `FormActions` 统一表单组件。 |
+| `DateRangePicker/index.jsx` | 钉钉式日期区间选择器，**所有列表/筛选页面统一使用**。chip + 日历浮层；日历通过 `createPortal` 渲染到 body，避开父级 `overflow-hidden` 裁剪。默认未选显示「请选择」，已选显示日期/区间；4 preset（今日/昨日/近7日/近30日）；底部「清空 + 确定」。 |
+
+### DateRangePicker 用法
+
+```jsx
+import DateRangePicker from '../../components/DateRangePicker'
+
+const [dateRange, setDateRange] = useState({ start: '', end: '' })
+
+<DateRangePicker
+  value={dateRange}
+  onChange={setDateRange}
+  label="创建日期"  // 影响 aria-label，不影响 UI
+/>
+```
+
+- **value 形状**：`{ start: 'YYYY-MM-DD', end: 'YYYY-MM-DD' }`，可空字符串（不过滤）。
+- **样式对齐**：MediaDailyReportPage 本地版本（不允许再自造"不限"文案）。
+- **Portal 渲染**：日历浮层通过 `createPortal(..., document.body)` 渲染，**任何父级 `overflow-hidden` 都不会裁剪**。浮层位置由 chip `getBoundingClientRect()` 计算。
+- **生命周期**：点击 chip 打开 → 点击浮层外关闭 → 选完按"确定"提交（清空按钮 = 全空提交）。
 
 ### 表单模板（来自 `FormKit.jsx`）
 
