@@ -1708,7 +1708,7 @@ function ApprovalCenterSection({ node }) {
   const [showFilter, setShowFilter] = useState(false)
   const [advanced, setAdvanced] = useState({
     type: '', bizName: '', applicant: '',
-    createStart: '', createEnd: '',
+    createRange: { start: '', end: '' },
   })
   const [rejectTarget, setRejectTarget] = useState(null)
   const [page, setPage] = useState(1)
@@ -1721,8 +1721,8 @@ function ApprovalCenterSection({ node }) {
     if (advanced.type && r.type !== advanced.type) return false
     if (advanced.bizName && !r.bizName.includes(advanced.bizName)) return false
     if (advanced.applicant && r.applicant !== advanced.applicant) return false
-    if (advanced.createStart && r.createTime < advanced.createStart) return false
-    if (advanced.createEnd && r.createTime > advanced.createEnd + ' 23:59:59') return false
+    if (advanced.createRange.start && r.createTime < advanced.createRange.start) return false
+    if (advanced.createRange.end && r.createTime > advanced.createRange.end + ' 23:59:59') return false
     return true
   })
   const total = filtered.length
@@ -1750,13 +1750,21 @@ function ApprovalCenterSection({ node }) {
     advanced.type && { key: 'type', label: `类型：${advanced.type}`, clear: () => setAdvanced(a => ({ ...a, type: '' })) },
     advanced.bizName && { key: 'bizName', label: `业务：${advanced.bizName}`, clear: () => setAdvanced(a => ({ ...a, bizName: '' })) },
     advanced.applicant && { key: 'applicant', label: `申请人：${advanced.applicant}`, clear: () => setAdvanced(a => ({ ...a, applicant: '' })) },
-    (advanced.createStart || advanced.createEnd) && { key: 'createRange', label: `创建：${advanced.createStart || '不限'} ~ ${advanced.createEnd || '不限'}`, clear: () => setAdvanced(a => ({ ...a, createStart: '', createEnd: '' })) },
+    (advanced.createRange.start || advanced.createRange.end) && {
+      key: 'createRange',
+      label: advanced.createRange.start && advanced.createRange.end
+        ? `创建：${advanced.createRange.start} ~ ${advanced.createRange.end}`
+        : advanced.createRange.start
+          ? `创建：${advanced.createRange.start} 起`
+          : `创建：截至 ${advanced.createRange.end}`,
+      clear: () => setAdvanced(a => ({ ...a, createRange: { start: '', end: '' } })),
+    },
   ].filter(Boolean)
   const hasFilter = activeFilters.length > 0
 
   const handleReset = () => {
     setStatus('审批中')
-    setAdvanced({ type: '', bizName: '', applicant: '', createStart: '', createEnd: '' })
+    setAdvanced({ type: '', bizName: '', applicant: '', createRange: { start: '', end: '' } })
   }
 
   return (
@@ -1818,7 +1826,7 @@ function ApprovalCenterSection({ node }) {
           onApply={() => setShowFilter(false)}
           onClose={() => setShowFilter(false)}
           onReset={() => {
-            setAdvanced({ type: '', bizName: '', applicant: '', createStart: '', createEnd: '' })
+            setAdvanced({ type: '', bizName: '', applicant: '', createRange: { start: '', end: '' } })
             setPage(1)
           }}
         />
@@ -2057,13 +2065,10 @@ function ApprovalAdvancedFilter({ values, setValues, typeOpts, applicantOpts = [
               </div>
             )}
             {activeField?.kind === 'daterange' && (
-              <div className="flex items-center gap-2">
-                <input type="date" value={values.createStart || ''} onChange={e => set('createStart', e.target.value)}
-                  className="flex-1 h-9 px-3 bg-ink-50 rounded text-[12px] text-ink-900 focus:outline-none focus:ring-1 focus:ring-brand"/>
-                <span className="text-ink-400 text-[12px]">~</span>
-                <input type="date" value={values.createEnd || ''} onChange={e => set('createEnd', e.target.value)}
-                  className="flex-1 h-9 px-3 bg-ink-50 rounded text-[12px] text-ink-900 focus:outline-none focus:ring-1 focus:ring-brand"/>
-              </div>
+              <DateRangePicker
+                value={values.createRange || { start: '', end: '' }}
+                onChange={v => set('createRange', v)}
+              />
             )}
           </div>
         </div>
@@ -6742,7 +6747,7 @@ function ConsumptionReportShell({ node, config, children }) {
   const PAGE_SIZE = 15
   const total = data.length
 
-  // 列表行内显示的"单条件"：日期范围（最常用）。默认空 = 不限
+  // 列表行内显示的"单条件"：日期范围（最常用）。默认空 = 未选（DateRangePicker 底部"清空"按钮可一键清空）
   const [dateRange, setDateRange] = useState({ start: '', end: '' })
   const [filterOpen, setFilterOpen] = useState(false)
   const [advanced, setAdvanced] = useState(() => buildAdvancedInit(config.advancedFields))
