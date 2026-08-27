@@ -178,14 +178,20 @@ function FieldDrawer({ currentKey, onSelect, onClose }) {
   )
 }
 
-// ============ 高级筛选 Sheet（单列堆叠）============
+// ============ 高级筛选 Sheet（钉钉式左字段 + 右条件）============
 function AdvancedFilter({ values, setValues, onReset, onClose }) {
+  const fields = [
+    { key: 'platform',      label: '端口',         kind: 'chips', options: PLATFORM_OPTIONS },
+    { key: 'weekCost',      label: '近7日消耗',    kind: 'chips', options: WEEK_COST_OPTIONS },
+    { key: 'availableDays', label: '余额可用天数', kind: 'chips', options: DAYS_OPTIONS },
+    { key: 'payType',       label: '付款方式',     kind: 'chips', options: PAY_TYPE_OPTIONS },
+    { key: 'coopMode',      label: '合作模式',     kind: 'chips', options: COOP_OPTIONS },
+    { key: 'group',         label: '集团名称',     kind: 'input' },
+    { key: 'subject',       label: '开户主体',     kind: 'input' },
+  ]
+  const [active, setActive] = useState(fields[0].key)
   const set = (k, v) => setValues(s => ({ ...s, [k]: v }))
-  const chipRow = (key, label, options) => (
-    <FilterField label={label}>
-      <ChipRow options={options} value={values[key]} onChange={v => set(key, v)}/>
-    </FilterField>
-  )
+  const activeField = fields.find(f => f.key === active)
   return (
     <div className="fixed inset-0 z-[60] bg-black/40 flex items-end" onClick={onClose}>
       <div className="w-full bg-white rounded-t-2xl h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
@@ -197,28 +203,47 @@ function AdvancedFilter({ values, setValues, onReset, onClose }) {
             </svg>
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-4 space-y-5">
-          {chipRow('platform',      '端口',         PLATFORM_OPTIONS)}
-          {chipRow('weekCost',      '近7日消耗',    WEEK_COST_OPTIONS)}
-          {chipRow('availableDays', '余额可用天数', DAYS_OPTIONS)}
-          {chipRow('payType',       '付款方式',     PAY_TYPE_OPTIONS)}
-          {chipRow('coopMode',      '合作模式',     COOP_OPTIONS)}
-          <FilterField label="集团名称">
-            <input
-              value={values.group}
-              onChange={e => set('group', e.target.value)}
-              placeholder="请输入集团名称"
-              className="w-full h-9 px-3 bg-ink-50 rounded text-[13px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-1 focus:ring-brand"
-            />
-          </FilterField>
-          <FilterField label="开户主体">
-            <input
-              value={values.subject}
-              onChange={e => set('subject', e.target.value)}
-              placeholder="请输入开户主体"
-              className="w-full h-9 px-3 bg-ink-50 rounded text-[13px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-1 focus:ring-brand"
-            />
-          </FilterField>
+        <div className="flex flex-1 min-h-0">
+          {/* 左字段栏 */}
+          <div className="w-[100px] bg-ink-50 overflow-y-auto scrollbar-hide">
+            {fields.map(f => (
+              <button
+                key={f.key}
+                onClick={() => setActive(f.key)}
+                className={`w-full px-3 py-3 text-left text-[12px] tap border-l-2 ${
+                  active === f.key ? 'bg-white text-brand border-brand font-medium' : 'text-ink-700 border-transparent'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          {/* 右值区 */}
+          <div className="flex-1 overflow-y-auto p-4">
+            {activeField?.kind === 'input' && (
+              <input
+                value={values[active] || ''}
+                onChange={e => set(active, e.target.value)}
+                placeholder={`请输入${activeField.label}`}
+                className="w-full h-9 px-3 bg-ink-50 rounded text-[13px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-1 focus:ring-brand"
+              />
+            )}
+            {activeField?.kind === 'chips' && (
+              <div className="flex flex-wrap gap-2">
+                {activeField.options.map(o => (
+                  <button
+                    key={o}
+                    onClick={() => set(active, values[active] === o ? '' : o)}
+                    className={`h-7 px-3 rounded-full text-[12px] tap ${
+                      (values[active] || '全部') === o ? 'bg-brand text-white' : 'bg-ink-50 text-ink-700'
+                    }`}
+                  >
+                    {o}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
         <div className="flex-none flex border-t border-ink-100 px-3 py-3 gap-3 bg-white">
           <button
