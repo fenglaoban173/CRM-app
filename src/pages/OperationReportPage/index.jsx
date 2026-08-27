@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import dayjs from 'dayjs'
 import {
-  PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, LabelList, ReferenceLine, Legend,
+  PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, LabelList, Legend,
 } from 'recharts'
 import { operationReportData, monthlyReportDetailData } from '../../data/mock'
 
@@ -32,11 +32,7 @@ const PERIOD_LABEL = {
   quarterly: '季度',
 }
 
-const COMPARE_OPTIONS = [
-  { key: 'all',  label: '全部' },
-  { key: 'up',   label: '上升' },
-  { key: 'down', label: '下降' },
-]
+const COMPARE_OPTIONS = ['全部', '环比为0']
 
 const TAB_OPTIONS = [
   { key: 'operator', label: '运营' },
@@ -264,13 +260,10 @@ function BarSection({ trend, avg, periodKey }) {
                   labelStyle={{ color: '#4E5969' }}
                   formatter={(v) => [`${Number(v).toFixed(2)} 万`, '消耗']}
                 />
-                <Bar dataKey="value" fill="#10B981" radius={[2, 2, 0, 0]} maxBarSize={30}>
+                <Bar dataKey="value" fill="#2D7FF9" radius={[2, 2, 0, 0]} maxBarSize={30}>
                   <LabelList dataKey="value" position="insideTop" fill="#fff" fontSize={9}
                     formatter={(v) => v > 0 ? Number(v).toFixed(2) : ''}/>
                 </Bar>
-                {avg > 0 && (
-                  <ReferenceLine y={avg} stroke="#FAAD14" strokeDasharray="4 4"/>
-                )}
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -368,13 +361,13 @@ function CompareRow({ value, onChange, nonGiftText }) {
     <div className="mx-3 mt-3 flex items-center gap-2">
       <span className="text-[13px] text-ink-700 font-medium shrink-0">环比筛选</span>
       <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
-        {COMPARE_OPTIONS.map(o => {
-          const active = value === o.key
+        {COMPARE_OPTIONS.map(opt => {
+          const active = value === opt
           return (
-            <button key={o.key} onClick={() => onChange(o.key)}
+            <button key={opt} onClick={() => onChange(opt)}
               className={`h-7 px-3 rounded-full text-[12px] tap whitespace-nowrap shrink-0 ${
                 active ? 'bg-brand text-white' : 'bg-ink-50 text-ink-700 active:bg-ink-100'
-              }`}>{o.label}</button>
+              }`}>{opt}</button>
           )
         })}
       </div>
@@ -675,63 +668,64 @@ function RankDetailSheet({ item, dim, mediaKey, onClose, showToast }) {
           </div>
         )}
 
-        {/* 第 3 层 — 广告主消耗明细表格 */}
+        {/* 第 3 层 — 广告主消耗明细卡片 */}
         <div className="mx-3 mt-3 flex items-center justify-between">
           <GroupTitle right={`共 ${total} 条`}>广告主消耗明细</GroupTitle>
         </div>
-        <div className="mx-3 mt-2 card overflow-hidden">
-          <div className="overflow-x-auto scrollbar-hide">
-            <table className="w-full text-[11px]" style={{ minWidth: 560 }}>
-              <thead className="bg-ink-50 text-ink-500">
-                <tr>
-                  <th className="px-3 py-2.5 text-left font-medium whitespace-nowrap" style={{ minWidth: 90 }}>日期</th>
-                  <th className="px-3 py-2.5 text-left font-medium whitespace-nowrap" style={{ minWidth: 100 }}>广告主ID</th>
-                  <th className="px-3 py-2.5 text-left font-medium whitespace-nowrap" style={{ minWidth: 110 }}>广告主名称</th>
-                  <th className="px-3 py-2.5 text-left font-medium whitespace-nowrap" style={{ minWidth: 90 }}>媒体平台</th>
-                  <th className="px-3 py-2.5 text-left font-medium whitespace-nowrap" style={{ minWidth: 110 }}>客户名称</th>
-                  <th className="px-3 py-2.5 text-left font-medium whitespace-nowrap" style={{ minWidth: 80 }}>行业</th>
-                  <th className="px-3 py-2.5 text-right font-medium whitespace-nowrap" style={{ minWidth: 100 }}>非赠款消耗金额</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-ink-100">
-                {slice.map((row, i) => (
-                  <tr key={i} className="hover:bg-ink-50/50">
-                    <td className="px-3 py-2.5 whitespace-nowrap text-ink-700">{row.date}</td>
-                    <td className="px-3 py-2.5 whitespace-nowrap text-ink-900 font-mono">{row.advId}</td>
-                    <td className="px-3 py-2.5 whitespace-nowrap text-ink-900">{row.advName}</td>
-                    <td className="px-3 py-2.5 whitespace-nowrap text-ink-700">{row.platform}</td>
-                    <td className="px-3 py-2.5 whitespace-nowrap text-ink-700">{row.customer}</td>
-                    <td className="px-3 py-2.5 whitespace-nowrap text-ink-700">{row.industry}</td>
-                    <td className="px-3 py-2.5 whitespace-nowrap text-ink-900 font-mono text-right">
-                      {row.nonGift.toFixed(2)}
-                    </td>
-                  </tr>
-                ))}
-                {slice.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="px-3 py-8 text-center text-[12px] text-ink-400">暂无数据</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+        {slice.length === 0 ? (
+          <div className="mx-3 mt-2 py-10 text-center text-ink-400 text-[13px] card">暂无数据</div>
+        ) : (
+          <div className="mx-3 mt-2 space-y-2">
+            {slice.map((r, i) => (
+              <div key={`${r.date}-${r.advId}-${i}`} className="card overflow-hidden">
+                <div className="px-4 py-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-ink-400 tabular-nums">{r.date}</span>
+                    <span className="text-[11px] text-ink-500 bg-ink-50 px-2 py-0.5 rounded">{r.platform}</span>
+                  </div>
+                  <div className="mt-1.5 text-[14px] text-ink-900 truncate">{r.advName}</div>
+                  <div className="mt-2 flex items-center justify-between pt-2 border-t border-ink-100">
+                    <div className="flex items-center gap-2 text-[11px] text-ink-500">
+                      <span className="bg-ink-50 px-1.5 py-0.5 rounded">{r.industry}</span>
+                      <span className="font-mono text-[10px] tabular-nums">ID:{r.advId.slice(-6)}</span>
+                    </div>
+                    <div className="text-[15px] font-semibold text-brand tabular-nums">
+                      {r.nonGift.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      <span className="ml-0.5 text-[10px] text-ink-400 font-normal">元</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-          {/* 分页 */}
-          <div className="flex items-center justify-between px-3 py-3 text-[10px] text-ink-400">
-            <span>{PAGE_SIZE} 条/页</span>
-            <span>共 {total} 条</span>
-            <div className="flex items-center gap-1">
-              <button onClick={() => setPage(Math.max(1, safePage - 1))} disabled={safePage === 1}
-                className="w-6 h-6 rounded border border-ink-200 bg-white flex items-center justify-center disabled:opacity-40">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="#666" strokeWidth="2" strokeLinecap="round"/></svg>
+        )}
+        {/* 分页 */}
+        {total > 0 && (
+          <div className="mx-3 mt-3 pb-2">
+            <div className="flex items-center justify-center gap-1.5">
+              <button onClick={() => setPage(Math.max(1, safePage - 1))} disabled={safePage <= 1}
+                className="w-8 h-8 rounded-full border border-ink-200 flex items-center justify-center disabled:opacity-40 bg-white tap"
+                aria-label="上一页">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M15 6l-6 6 6 6" stroke="#4E5969" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </button>
-              <span className="px-2 text-ink-700">{safePage}/{totalPages}</span>
-              <button onClick={() => setPage(Math.min(totalPages, safePage + 1))} disabled={safePage === totalPages}
-                className="w-6 h-6 rounded border border-ink-200 bg-white flex items-center justify-center disabled:opacity-40">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="#666" strokeWidth="2" strokeLinecap="round"/></svg>
+              <span className="px-2 text-ink-700 text-[12px]">{safePage}/{totalPages}</span>
+              <button onClick={() => setPage(Math.min(totalPages, safePage + 1))} disabled={safePage >= totalPages}
+                className="w-8 h-8 rounded-full border border-ink-200 flex items-center justify-center disabled:opacity-40 bg-white tap"
+                aria-label="下一页">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M9 6l6 6-6 6" stroke="#4E5969" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </button>
             </div>
+            <div className="mt-2 flex items-center justify-center gap-2 text-[11px] text-ink-500">
+              <span>{PAGE_SIZE} 条/页</span>
+              <span className="text-ink-300">|</span>
+              <span>共 {total} 条</span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )
@@ -744,7 +738,7 @@ export default function OperationReportPage({ node }) {
 
   const [tab, setTab] = useState('operator')
   const [activeCard, setActiveCard] = useState(null)        // 选中的媒体
-  const [compareFilter, setCompareFilter] = useState('all')  // 全部 / 上升 / 下降
+  const [compareFilter, setCompareFilter] = useState('全部')  // '全部' / '环比为0'
   const [advOpen, setAdvOpen] = useState(false)
   const [advanced, setAdvanced] = useState({
     platform: '', department: '', cooperation: '', payment: '', group: '',
@@ -765,8 +759,7 @@ export default function OperationReportPage({ node }) {
   // 环比筛选后的二级卡
   const filteredCards = useMemo(() => {
     return allCards.filter(c => {
-      if (compareFilter === 'up' && !(c.qoq > 0)) return false
-      if (compareFilter === 'down' && !(c.qoq < 0)) return false
+      if (compareFilter === '环比为0' && Math.abs(c.qoq) <= 0.001) return false
       return true
     })
   }, [allCards, compareFilter])
@@ -822,8 +815,8 @@ export default function OperationReportPage({ node }) {
       {/* 饼图：二代/非二代/其他 */}
       <PieSection pie={mediaItem.pie} selectedLabel={selectedLabel}/>
 
-      {/* 柱状图：按日/周/月/季 趋势 */}
-      {trend.length > 0 && (
+      {/* 柱状图：按周/月/季 趋势（日报无柱图）*/}
+      {period !== 'daily' && trend.length > 0 && (
         <BarSection trend={trend} avg={trendAvg} periodKey={period}/>
       )}
 
