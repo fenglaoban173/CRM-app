@@ -293,25 +293,17 @@ function Cell({ field, value }) {
 }
 
 // ============ 集团列表 - 高级筛选 Sheet ============
-function GroupAdvancedFilter({ values, setValues, groupTypeOptions, attrOptions, tagOptions, salesOptions, onClose, onApply }) {
+function GroupAdvancedFilter({ values, setValues, onClose, onApply }) {
   const fields = [
-    { key: 'name',      label: '集团名称', kind: 'input' },
-    { key: 'creator',   label: '创建人',   kind: 'input' },
-    { key: 'sales',     label: '销售',     kind: 'select', options: salesOptions },
-    { key: 'groupType', label: '集团类型', kind: 'select', options: groupTypeOptions },
-    { key: 'attr',      label: '集团属性', kind: 'select', options: attrOptions },
-    { key: 'tag',       label: '标签',     kind: 'select', options: tagOptions },
-    { key: 'createdRange', label: '创建日期', kind: 'daterange' },
+    { key: 'name',    label: '集团名称', kind: 'input' },
+    { key: 'creator', label: '创建人',   kind: 'input' },
   ]
   const [active, setActive] = useState('name')
   const set = (k, v) => setValues(s => ({ ...s, [k]: v }))
   const activeField = fields.find(f => f.key === active)
   const handleApply = () => { onApply && onApply(); onClose() }
   const handleReset = () => {
-    setValues({
-      name: '', creator: '', sales: '', groupType: '', attr: '', tag: '',
-      createdStart: '', createdEnd: '',
-    })
+    setValues({ name: '', creator: '' })
   }
   return (
     <div className="fixed inset-0 z-[60] bg-black/40 flex items-end" onClick={onClose}>
@@ -357,15 +349,7 @@ function GroupAdvancedFilter({ values, setValues, groupTypeOptions, attrOptions,
                 ))}
               </div>
             )}
-            {activeField?.kind === 'daterange' && (
-              <div className="flex items-center gap-2">
-                <input type="date" value={values.createdStart || ''} onChange={e => set('createdStart', e.target.value)}
-                  className="flex-1 h-9 px-3 bg-ink-50 rounded text-[12px] text-ink-900 focus:outline-none focus:ring-1 focus:ring-brand"/>
-                <span className="text-ink-400 text-[12px]">~</span>
-                <input type="date" value={values.createdEnd || ''} onChange={e => set('createdEnd', e.target.value)}
-                  className="flex-1 h-9 px-3 bg-ink-50 rounded text-[12px] text-ink-900 focus:outline-none focus:ring-1 focus:ring-brand"/>
-              </div>
-            )}
+            {/* (daterange 已移除：行内 DateRangePicker 替代) */}
           </div>
         </div>
         <div className="flex-none flex border-t border-ink-100 px-3 py-3 gap-3 bg-white">
@@ -377,50 +361,31 @@ function GroupAdvancedFilter({ values, setValues, groupTypeOptions, attrOptions,
   )
 }
 
-// ============ 集团列表（钉钉式：日期 + 漏斗 + 卡片列表 + 分页）============
+// ============ 集团列表（钉钉式：集团名称搜索 + 漏斗 + 卡片列表 + 分页）============
 function GroupListSection({ node }) {
   const data = node.data || []
   const fields = node.fields || []
   const PAGE_SIZE = 15
   const nav = useNavigate()
 
-  // 钉钉式：行内日期 + 漏斗
-  const [dateRange, setDateRange] = useState({ start: '', end: '' })
+  // 钉钉式：行内 集团名称搜索 + 漏斗
+  const [nameQuery, setNameQuery] = useState('')
   const [filterOpen, setFilterOpen] = useState(false)
   const [advanced, setAdvanced] = useState({
-    name: '', creator: '', sales: '', groupType: '', attr: '', tag: '',
-    createdStart: '', createdEnd: '',
+    name: '', creator: '',
   })
   const [page, setPage] = useState(1)
 
-  // 派生 select 选项
-  const groupTypeOptions = Array.from(new Set(data.map(d => d.groupType).filter(Boolean)))
-  const attrOptions      = Array.from(new Set(data.map(d => d.attr).filter(Boolean)))
-  const tagOptions       = Array.from(new Set(data.map(d => d.tag).filter(Boolean)))
-  const salesOptions     = Array.from(new Set(data.map(d => d.sales).filter(Boolean)))
+  const handleSheetApply = () => { setFilterOpen(false) }
 
-  const handleDateChange = ({ start, end }) => {
-    setDateRange({ start, end })
-    setAdvanced(a => ({ ...a, createdStart: start, createdEnd: end }))
-  }
-  const handleSheetApply = () => {
-    setDateRange({ start: advanced.createdStart || '', end: advanced.createdEnd || '' })
-    setFilterOpen(false)
-  }
+  // 顶行只算漏斗里的条件数（不把 nameQuery 计入，nameQuery 是行内常驻）
+  const activeAdvancedCount = Object.values(advanced).filter(Boolean).length
 
-  const otherAdvancedCount = Object.entries(advanced).filter(([k, v]) => v && k !== 'createdStart' && k !== 'createdEnd').length
-  const activeAdvancedCount = (dateRange.start || dateRange.end ? 1 : 0) + otherAdvancedCount
-
-  // 过滤
+  // 过滤：行内 nameQuery + 漏斗 name/creator
   const filtered = data.filter(g => {
-    if (advanced.name      && !g.name?.includes(advanced.name))     return false
-    if (advanced.creator   && !g.creator?.includes(advanced.creator)) return false
-    if (advanced.sales     && g.sales !== advanced.sales)           return false
-    if (advanced.groupType && g.groupType !== advanced.groupType)   return false
-    if (advanced.attr      && g.attr !== advanced.attr)             return false
-    if (advanced.tag       && g.tag !== advanced.tag)               return false
-    if (advanced.createdStart && g.created && g.created < advanced.createdStart) return false
-    if (advanced.createdEnd   && g.created && g.created > advanced.createdEnd)   return false
+    if (nameQuery      && !g.name?.includes(nameQuery))            return false
+    if (advanced.name    && !g.name?.includes(advanced.name))       return false
+    if (advanced.creator && !g.creator?.includes(advanced.creator)) return false
     return true
   })
   const total = filtered.length
@@ -428,16 +393,28 @@ function GroupListSection({ node }) {
   const safePage = Math.min(page, totalPages)
   const paged = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
-  useEffect(() => { setPage(1) }, [advanced, dateRange])
+  useEffect(() => { setPage(1) }, [advanced, nameQuery])
 
   return (
     <>
-      {/* 钉钉式查询条件卡（单行：日期 + 漏斗） */}
+      {/* 钉钉式查询条件卡（单行：集团名称搜索 + 漏斗） */}
       <div className="card mx-3 mt-3 overflow-hidden">
         <div className="flex items-center gap-2 px-3 py-2.5">
-          <span className="text-[11px] text-ink-500 shrink-0">创建日期</span>
-          <DateRangePicker value={dateRange} onChange={handleDateChange}/>
-          <div className="flex-1"/>
+          <span className="text-[11px] text-ink-500 shrink-0">集团名称</span>
+          <div className="flex-1 flex items-center gap-1.5 h-8 px-3 bg-ink-50 rounded-full min-w-0">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className="shrink-0">
+              <circle cx="11" cy="11" r="6" stroke="#999" strokeWidth="1.8"/>
+              <path d="M20 20l-3.5-3.5" stroke="#999" strokeWidth="1.8" strokeLinecap="round"/>
+            </svg>
+            <input value={nameQuery} onChange={e => setNameQuery(e.target.value)}
+              placeholder="请输入集团名称"
+              className="flex-1 min-w-0 bg-transparent text-[12px] text-ink-900 placeholder:text-ink-400 focus:outline-none"/>
+            {nameQuery && (
+              <button onClick={() => setNameQuery('')} className="shrink-0 w-4 h-4 rounded-full bg-ink-200 flex items-center justify-center tap" aria-label="清除">
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="#666" strokeWidth="2.5" strokeLinecap="round"/></svg>
+              </button>
+            )}
+          </div>
           <button onClick={() => setFilterOpen(true)}
             className="w-9 h-9 bg-ink-50 rounded-full flex items-center justify-center tap relative shrink-0">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -504,10 +481,6 @@ function GroupListSection({ node }) {
         <GroupAdvancedFilter
           values={advanced}
           setValues={setAdvanced}
-          groupTypeOptions={groupTypeOptions}
-          attrOptions={attrOptions}
-          tagOptions={tagOptions}
-          salesOptions={salesOptions}
           onApply={handleSheetApply}
           onClose={() => setFilterOpen(false)}
         />
