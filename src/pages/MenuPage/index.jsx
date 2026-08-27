@@ -505,35 +505,25 @@ function SubjectListSection({ node }) {
   const fields = node.fields || []
   const nav = useNavigate()
 
-  // 钉钉式：行内 客户名称搜索 + 漏斗 sheet 含全部条件
+  // 钉钉式：行内 客户名称搜索 + 漏斗 sheet 含（集团名称 / 创建人 / 所属行业）
   const [nameQuery, setNameQuery] = useState('')
   const [filterOpen, setFilterOpen] = useState(false)
   const [advanced, setAdvanced] = useState({
-    customerCode: '', bankAccount: '', phone: '', creditCode: '',
-    tag: '', accountType: '', industry: '', status: '', groupName: '', sales: '',
+    groupName: '', creator: '', industry: '',
   })
 
   const INDUSTRY_OPTIONS = ['互联网', '电商', '广告', '文化', '医疗', '食品', '美业']
-  const STATUS_OPTIONS = ['生效', '失效']
   const GROUP_OPTIONS = Array.from(new Set(data.map(d => d.groupName).filter(Boolean)))
 
   const handleSheetApply = () => { setFilterOpen(false) }
 
-  // 顶行不计入 nameQuery；漏斗条件数 = advanced 非空项
   const activeAdvancedCount = Object.values(advanced).filter(Boolean).length
 
   const filtered = data.filter(item => {
     if (nameQuery && !item.customerName?.includes(nameQuery)) return false
-    if (advanced.customerCode && !item.customerCode?.includes(advanced.customerCode)) return false
-    if (advanced.bankAccount && !item.bankAccount?.includes(advanced.bankAccount)) return false
-    if (advanced.phone && !item.phone?.includes(advanced.phone)) return false
-    if (advanced.creditCode && !item.creditCode?.includes(advanced.creditCode)) return false
-    if (advanced.tag && !item.tag?.includes(advanced.tag)) return false
-    if (advanced.accountType && item.accountType !== advanced.accountType) return false
-    if (advanced.industry && item.industry !== advanced.industry) return false
-    if (advanced.status && item.status !== advanced.status) return false
     if (advanced.groupName && item.groupName !== advanced.groupName) return false
-    if (advanced.sales && !item.sales?.includes(advanced.sales)) return false
+    if (advanced.creator   && item.creator   !== advanced.creator) return false
+    if (advanced.industry  && item.industry  !== advanced.industry) return false
     return true
   })
 
@@ -596,7 +586,6 @@ function SubjectListSection({ node }) {
           values={advanced}
           setValues={setAdvanced}
           industries={INDUSTRY_OPTIONS}
-          statuses={STATUS_OPTIONS}
           groupOptions={GROUP_OPTIONS}
           onApply={handleSheetApply}
           onClose={() => setFilterOpen(false)}
@@ -1099,27 +1088,19 @@ function FieldDrawer({ fields, currentKey, onSelect, onClose }) {
 }
 
 // ============ 主体管理高级筛选弹窗（钉钉式左侧字段 + 右侧条件）============
-function SubjectAdvancedFilter({ values, setValues, industries, statuses, groupOptions, onClose, onApply }) {
+function SubjectAdvancedFilter({ values, setValues, industries, groupOptions, onClose, onApply }) {
   const fields = [
-    { key: 'customerCode', label: '客户编号', kind: 'input' },
-    { key: 'bankAccount', label: '银行账号', kind: 'input' },
-    { key: 'phone', label: '注册电话', kind: 'input' },
-    { key: 'creditCode', label: '统一社会信用代码', kind: 'input' },
-    { key: 'tag', label: '标签', kind: 'input' },
-    { key: 'accountType', label: '账户类型', kind: 'input' },
-    { key: 'industry', label: '所属行业', kind: 'select', options: industries },
-    { key: 'status', label: '生效状态', kind: 'select', options: statuses },
     { key: 'groupName', label: '集团名称', kind: 'select', options: groupOptions },
-    { key: 'sales', label: '销售', kind: 'input' },
+    { key: 'creator',   label: '创建人',   kind: 'input' },
+    { key: 'industry',  label: '所属行业', kind: 'select', options: industries },
   ]
-  const [active, setActive] = useState('industry')
+  const [active, setActive] = useState('groupName')
   const set = (k, v) => setValues(s => ({ ...s, [k]: v }))
   const handleApply = () => { onApply && onApply(); onClose() }
 
   const handleReset = () => {
     setValues({
-      customerCode: '', bankAccount: '', phone: '', creditCode: '',
-      tag: '', accountType: '', industry: '', status: '', groupName: '', sales: '',
+      groupName: '', creator: '', industry: '',
     })
   }
 
