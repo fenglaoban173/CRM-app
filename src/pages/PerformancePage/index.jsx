@@ -58,14 +58,17 @@ export default function PerformancePage() {
 
   return (
     <div className="bg-ink-50 min-h-full pb-4">
-      {/* 顶部 Bar（含返回 icon） */}
-      <div className="bg-brand text-white px-4 h-12 flex items-center sticky top-0 z-30">
-        <button onClick={() => nav(-1)} className="w-9 h-9 -ml-2 flex items-center justify-center tap" aria-label="返回">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M15 6l-6 6 6 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-        <h1 className="flex-1 text-base font-medium ml-1">业绩汇总</h1>
+      {/* 顶部 Bar（含返回 icon + 面包屑） */}
+      <div className="bg-brand text-white sticky top-0 z-30">
+        <div className="px-4 h-12 flex items-center">
+          <button onClick={() => nav(-1)} className="w-9 h-9 -ml-2 flex items-center justify-center tap" aria-label="返回">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M15 6l-6 6 6 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <h1 className="flex-1 text-base font-medium ml-1">业绩汇总</h1>
+        </div>
+        <div className="px-4 pb-2 text-[11px] opacity-90 truncate">运营中心 / 业绩汇总</div>
       </div>
 
       {/* 维度 Tab + 导出按钮（靠右） */}
