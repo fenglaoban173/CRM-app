@@ -395,13 +395,6 @@ function TopBarWithBack({ title, onBack }) {
             <path d="M12 8v4M12 16h.01" stroke="#666" strokeWidth="1.5" strokeLinecap="round"/>
           </svg>
         </button>
-        <button className="w-8 h-8 flex items-center justify-center tap">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <circle cx="5" cy="12" r="1.5" fill="#666"/>
-            <circle cx="12" cy="12" r="1.5" fill="#666"/>
-            <circle cx="19" cy="12" r="1.5" fill="#666"/>
-          </svg>
-        </button>
       </div>
     </div>
   )

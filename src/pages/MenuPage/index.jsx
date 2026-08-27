@@ -171,13 +171,7 @@ function TopBar({ title, breadcrumb, onBack }) {
           </svg>
         </button>
         <h1 className="text-base font-medium absolute left-0 right-0 text-center pointer-events-none">{title}</h1>
-        <button className="w-8 h-8 flex items-center justify-center tap relative z-10">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <circle cx="5" cy="12" r="1.5" fill="white"/>
-            <circle cx="12" cy="12" r="1.5" fill="white"/>
-            <circle cx="19" cy="12" r="1.5" fill="white"/>
-          </svg>
-        </button>
+        <div className="w-8 h-8 relative z-10"/>
       </div>
       {breadcrumb && (
         <div className="px-4 pb-2 text-[11px] opacity-90 truncate">{breadcrumb}</div>
@@ -617,13 +611,12 @@ function ProjectListSection({ node }) {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const nav = useNavigate()
 
-  // 行内单条件（项目名称搜索）+ 漏斗 sheet 含全部条件
+  // 行内单条件（项目名称搜索）+ 漏斗 sheet 含 PC 截图 6 字段
   const [nameQuery, setNameQuery] = useState('')
   const [filterOpen, setFilterOpen] = useState(false)
   const [advanced, setAdvanced] = useState({
-    code: '', internalCode: '', projectId: '',
     groupFilter: '', customerFilter: '',
-    platform: '', creator: '', industry: '', sales: '', status: '',
+    platform: '', creator: '', industry: '', sales: '',
   })
   const [page, setPage] = useState(1)
 
@@ -633,7 +626,6 @@ function ProjectListSection({ node }) {
   const INDUSTRY_OPTIONS = ['互联网', '电商', '广告', '文化', '医疗', '食品', '美业']
   const SALES_OPTIONS = Array.from(new Set(data.map(d => d.salesName).filter(Boolean)))
   const CREATOR_OPTIONS = Array.from(new Set(data.map(d => d.creator).filter(Boolean)))
-  const STATUS_OPTIONS = ['审批通过', '审批中', '审批拒绝', '已撤销']
 
   const handleSheetApply = () => { setFilterOpen(false) }
 
@@ -641,16 +633,12 @@ function ProjectListSection({ node }) {
 
   const filtered = data.filter(p => {
     if (nameQuery && !p.name?.includes(nameQuery)) return false
-    if (advanced.code         && !p.code?.includes(advanced.code)) return false
-    if (advanced.internalCode && !p.internalCode?.includes(advanced.internalCode)) return false
-    if (advanced.projectId    && !p.projectId?.includes(advanced.projectId)) return false
     if (advanced.groupFilter && p.groupName !== advanced.groupFilter) return false
     if (advanced.customerFilter && p.customerName !== advanced.customerFilter) return false
     if (advanced.platform && p.platform !== advanced.platform) return false
     if (advanced.creator  && p.creator  !== advanced.creator) return false
     if (advanced.industry && p.industry !== advanced.industry) return false
     if (advanced.sales    && p.salesName !== advanced.sales) return false
-    if (advanced.status   && p.status !== advanced.status) return false
     return true
   })
   const totalFiltered = filtered.length
@@ -722,15 +710,12 @@ function ProjectListSection({ node }) {
           creators={CREATOR_OPTIONS}
           industries={INDUSTRY_OPTIONS}
           sales={SALES_OPTIONS}
-          statuses={STATUS_OPTIONS}
           groupOptions={GROUP_OPTIONS}
           customerOptions={CUSTOMER_OPTIONS}
           onApply={handleSheetApply}
           onReset={() => setAdvanced({
-            name: '', code: '', internalCode: '', projectId: '',
             groupFilter: '', customerFilter: '',
-            platform: '', creator: '', industry: '', sales: '', status: '',
-            createdStart: '', createdEnd: '',
+            platform: '', creator: '', industry: '', sales: '',
           })}
           onClose={() => setFilterOpen(false)}
         />
@@ -923,26 +908,23 @@ function ProjectPagination({ total, page, pageSize, totalPages, onChange }) {
 }
 
 // ============ 项目高级筛选弹窗（钉钉式左字段 + 右条件）============
-function ProjectAdvancedFilter({ values, setValues, platforms, creators, industries, sales, statuses, groupOptions, customerOptions, onReset, onClose, onApply }) {
+function ProjectAdvancedFilter({ values, setValues, platforms, creators, industries, sales, groupOptions, customerOptions, onReset, onClose, onApply }) {
   const fields = [
-    { key: 'code',          label: '项目编号',     kind: 'input' },
-    { key: 'internalCode',  label: '内部自动编码', kind: 'input' },
-    { key: 'groupFilter',   label: '集团名称',     kind: 'select', options: groupOptions },
-    { key: 'customerFilter',label: '客户主体',     kind: 'select', options: customerOptions },
-    { key: 'platform',      label: '媒体平台',     kind: 'select', options: platforms },
-    { key: 'creator',       label: '创建人',       kind: 'select', options: creators },
-    { key: 'industry',      label: '客户所属行业', kind: 'select', options: industries },
-    { key: 'sales',         label: '销售人员',     kind: 'select', options: sales },
-    { key: 'status',        label: '审批状态',     kind: 'select', options: statuses },
+    { key: 'groupFilter',    label: '集团名称',     kind: 'select', options: groupOptions },
+    { key: 'customerFilter', label: '客户主体',     kind: 'select', options: customerOptions },
+    { key: 'platform',       label: '媒体平台',     kind: 'select', options: platforms },
+    { key: 'creator',        label: '创建人',       kind: 'select', options: creators },
+    { key: 'industry',       label: '客户所属行业', kind: 'select', options: industries },
+    { key: 'sales',          label: '销售人员',     kind: 'select', options: sales },
   ]
-  const [active, setActive] = useState('code')
+  const [active, setActive] = useState('groupFilter')
   const set = (k, v) => setValues(s => ({ ...s, [k]: v }))
   const activeField = fields.find(f => f.key === active)
   const handleApply = () => { onApply && onApply(); onClose() }
   const handleReset = () => {
     setValues({
-      code: '', internalCode: '', groupFilter: '', customerFilter: '',
-      platform: '', creator: '', industry: '', sales: '', status: '',
+      groupFilter: '', customerFilter: '',
+      platform: '', creator: '', industry: '', sales: '',
     })
   }
   return (
@@ -2127,7 +2109,7 @@ function AdvertiserListSection({ node, config }) {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const nav = useNavigate()
 
-  // 钉钉式：行内日期 + 漏斗
+  // 钉钉式：行内日期 + 漏斗（默认布局）；如 config.queryRow 提供则使用自定义行
   const [dateRange, setDateRange] = useState({ start: '', end: '' })
   const [filterOpen, setFilterOpen] = useState(false)
   const [advanced, setAdvanced] = useState({
@@ -2192,23 +2174,27 @@ function AdvertiserListSection({ node, config }) {
 
   return (
     <>
-      {/* 钉钉式查询条件卡（单行：日期 + 漏斗） */}
-      <div className="card mx-3 mt-3 overflow-hidden">
-        <div className="flex items-center gap-2 px-3 py-2.5">
-          <span className="text-[11px] text-ink-500 shrink-0">创建日期</span>
-          <DateRangePicker value={dateRange} onChange={handleDateChange}/>
-          <div className="flex-1"/>
-          <button onClick={() => setFilterOpen(true)}
-            className="w-9 h-9 bg-ink-50 rounded-full flex items-center justify-center tap relative shrink-0">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M3 5h18l-7 9v6l-4-2v-4L3 5z" stroke="#666" strokeWidth="1.8" strokeLinejoin="round"/>
-            </svg>
-            {activeFilterCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-brand text-white text-[10px] rounded-full flex items-center justify-center">{activeFilterCount}</span>
-            )}
-          </button>
+      {/* 钉钉式查询条件卡：自定义 row1（config.queryRow）或 legacy 日期 + 漏斗 */}
+      {config.queryRow ? (
+        config.queryRow({ advanced, setAdvanced, setFilterOpen, activeFilterCount, data })
+      ) : (
+        <div className="card mx-3 mt-3 overflow-hidden">
+          <div className="flex items-center gap-2 px-3 py-2.5">
+            <span className="text-[11px] text-ink-500 shrink-0">创建日期</span>
+            <DateRangePicker value={dateRange} onChange={handleDateChange}/>
+            <div className="flex-1"/>
+            <button onClick={() => setFilterOpen(true)}
+              className="w-9 h-9 bg-ink-50 rounded-full flex items-center justify-center tap relative shrink-0">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M3 5h18l-7 9v6l-4-2v-4L3 5z" stroke="#666" strokeWidth="1.8" strokeLinejoin="round"/>
+              </svg>
+              {activeFilterCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-brand text-white text-[10px] rounded-full flex items-center justify-center">{activeFilterCount}</span>
+              )}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 共 N 条 + 顶部右侧操作区 */}
       <div className="px-3 pt-3 flex items-center justify-between">
@@ -2321,69 +2307,437 @@ function AdvertiserTaskFab() {
 // ============ 广告主 4 个 Section 配置入口 ============
 function AdvertiserApplyListSection({ node }) {
   return (
-    <AdvertiserListSection
-      node={node}
-      config={{
-        defaultFieldKey: 'groupName',
-        fieldOptions: [
-          { key: 'groupName', label: '集团名称' },
-          { key: 'seqNo', label: '开户序列号' },
-          { key: 'copyAdvId', label: '复制广告主ID' },
-          { key: 'sales', label: '销售' },
-          { key: 'creator', label: '创建人' },
-        ],
-        chipLabel1: '开户状态',
-        chipKey1: 'status',
-        chipOptions1: () => ['开户中', '完成', '撤销'],
-        chipLabel2: '服务商池',
-        chipKey2: 'pool',
-        chipOptions2: (data) => Array.from(new Set(data.map(d => d.pool).filter(Boolean))),
-        advancedInit: { groupName: '', sales: '', creator: '', copyAdvId: '', createdStart: '', createdEnd: '' },
-        allowRevoke: true,
-        detailPath: (it) => `/advertiser/apply/detail/${it.id}`,
-        Card: AdvertiserApplyCard,
-      }}
-    />
+    <AdvertiserApplyListSectionInner node={node}/>
+  )
+}
+
+// ============ 开户申请列表（PC截图版：单行集团名称搜索 + 漏斗）============
+function AdvertiserApplyListSectionInner({ node }) {
+  const data = node.data || []
+  const fields = node.fields || []
+  const PAGE_SIZE = 15
+  const nav = useNavigate()
+
+  // 行内 集团名称搜索
+  const [nameQuery, setNameQuery] = useState('')
+  // 漏斗 sheet 3 字段（按 PC截图：开户状态 / 下户时间 / 下户申请人）
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [advanced, setAdvanced] = useState({
+    status: '',         // 开户状态
+    createdStart: '',   // 下户时间-起
+    createdEnd: '',     // 下户时间-止
+    creator: '',        // 下户申请人
+  })
+
+  const STATUS_OPTIONS = ['开户中', '完成', '撤销']
+
+  const handleSheetApply = () => { setFilterOpen(false) }
+  const handleSheetReset = () => {
+    setAdvanced({ status: '', createdStart: '', createdEnd: '', creator: '' })
+  }
+
+  const activeAdvancedCount = Object.values(advanced).filter(Boolean).length
+
+  const filtered = data.filter(item => {
+    if (nameQuery && !item.groupName?.includes(nameQuery)) return false
+    if (advanced.status && item.status !== advanced.status) return false
+    if (advanced.createdStart && item.created && item.created.slice(0,10) < advanced.createdStart) return false
+    if (advanced.createdEnd   && item.created && item.created.slice(0,10) > advanced.createdEnd)   return false
+    if (advanced.creator && item.creator !== advanced.creator) return false
+    return true
+  })
+
+  // Toast
+  const [toast, setToast] = useState(null)
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type })
+    setTimeout(() => setToast(null), 1800)
+  }
+
+  // 撤销 dialog
+  const [revokeTarget, setRevokeTarget] = useState(null)
+  const [revokeRemark, setRevokeRemark] = useState('')
+  const handleRevoke = (item) => { setRevokeTarget(item); setRevokeRemark('') }
+  const confirmRevoke = () => {
+    setRevokeTarget(null); setRevokeRemark(''); showToast('撤销成功', 'success')
+  }
+
+  // 开户申请 高级筛选 Sheet（3 字段，左右布局：左字段右值）
+  const applySheetFields = [
+    { key: 'status',       label: '开户状态', kind: 'select', options: STATUS_OPTIONS },
+    { key: 'createdRange', label: '下户时间', kind: 'daterange' },
+    { key: 'creator',      label: '下户申请人', kind: 'input' },
+  ]
+  const [applySheetActive, setApplySheetActive] = useState('status')
+  const applyActiveField = applySheetFields.find(f => f.key === applySheetActive)
+  const setApply = (k, v) => setAdvanced(a => ({ ...a, [k]: v }))
+
+  const ApplyAdvancedFilter = (
+    <div className="fixed inset-0 z-[60] bg-black/40 flex items-end" onClick={() => setFilterOpen(false)}>
+      <div className="w-full bg-white rounded-t-2xl h-[80vh] flex flex-col relative" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-ink-100">
+          <h2 className="text-[15px] font-medium text-ink-900">高级筛选</h2>
+          <button onClick={() => setFilterOpen(false)} className="w-7 h-7 flex items-center justify-center tap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="#999" strokeWidth="2" strokeLinecap="round"/></svg>
+          </button>
+        </div>
+        <div className="flex flex-1 min-h-0">
+          {/* 左：字段栏 */}
+          <div className="w-[100px] bg-ink-50 overflow-y-auto">
+            {applySheetFields.map(f => (
+              <button key={f.key} onClick={() => setApplySheetActive(f.key)}
+                className={`w-full px-3 py-3 text-left text-[12px] tap border-l-2 ${
+                  applySheetActive === f.key ? 'bg-white text-brand border-brand font-medium' : 'text-ink-700 border-transparent'
+                }`}>{f.label}</button>
+            ))}
+          </div>
+          {/* 右：值区 */}
+          <div className="flex-1 overflow-y-auto p-4">
+            {applyActiveField?.kind === 'input' && (
+              <input value={advanced[applySheetActive] || ''} onChange={e => setApply(applySheetActive, e.target.value)}
+                placeholder={`请输入${applyActiveField.label}`}
+                className="w-full h-9 px-3 bg-ink-50 rounded text-[13px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-1 focus:ring-brand"/>
+            )}
+            {applyActiveField?.kind === 'select' && (
+              <div className="space-y-2">
+                <label onClick={() => setApply(applySheetActive, '')} className="flex items-center gap-2 px-2 py-2 rounded tap cursor-pointer">
+                  <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${!advanced[applySheetActive] ? 'border-brand' : 'border-ink-200'}`}>
+                    {!advanced[applySheetActive] && <span className="w-2 h-2 rounded-full bg-brand"/>}
+                  </span>
+                  <span className="text-[13px] text-ink-900">全部</span>
+                </label>
+                {applyActiveField.options.map(opt => (
+                  <label key={opt} onClick={() => setApply(applySheetActive, opt)} className="flex items-center gap-2 px-2 py-2 rounded tap cursor-pointer">
+                    <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${advanced[applySheetActive] === opt ? 'border-brand' : 'border-ink-200'}`}>
+                      {advanced[applySheetActive] === opt && <span className="w-2 h-2 rounded-full bg-brand"/>}
+                    </span>
+                    <span className="text-[13px] text-ink-900">{opt}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+            {applyActiveField?.kind === 'daterange' && (
+              <div className="flex items-center gap-2">
+                <input type="date" value={advanced.createdStart} onChange={e => setAdvanced(a => ({ ...a, createdStart: e.target.value }))}
+                  className="flex-1 h-9 px-3 bg-ink-50 rounded text-[12px] text-ink-900 focus:outline-none focus:ring-1 focus:ring-brand"/>
+                <span className="text-ink-400 text-[12px]">~</span>
+                <input type="date" value={advanced.createdEnd} onChange={e => setAdvanced(a => ({ ...a, createdEnd: e.target.value }))}
+                  className="flex-1 h-9 px-3 bg-ink-50 rounded text-[12px] text-ink-900 focus:outline-none focus:ring-1 focus:ring-brand"/>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="flex-none flex border-t border-ink-100 px-3 py-3 gap-3 bg-white">
+          <button onClick={handleSheetReset} className="flex-1 h-11 bg-white border border-ink-200 rounded-full text-[14px] text-ink-700 active:bg-ink-50 tap">重 置</button>
+          <button onClick={handleSheetApply} className="flex-1 h-11 bg-brand text-white rounded-full text-[14px] active:opacity-90 tap">确 认</button>
+        </div>
+      </div>
+    </div>
+  )
+
+  return (
+    <>
+      {/* 钉钉式查询条件卡（单行：集团名称搜索 + 漏斗） */}
+      <div className="card mx-3 mt-3 overflow-hidden">
+        <div className="flex items-center gap-2 px-3 py-2.5">
+          <span className="text-[11px] text-ink-500 shrink-0">集团名称</span>
+          <div className="flex-1 flex items-center gap-1.5 h-8 px-3 bg-ink-50 rounded-full min-w-0">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className="shrink-0">
+              <circle cx="11" cy="11" r="6" stroke="#999" strokeWidth="1.8"/>
+              <path d="M20 20l-3.5-3.5" stroke="#999" strokeWidth="1.8" strokeLinecap="round"/>
+            </svg>
+            <input value={nameQuery} onChange={e => setNameQuery(e.target.value)}
+              placeholder="请输入集团名称"
+              className="flex-1 min-w-0 bg-transparent text-[12px] text-ink-900 placeholder:text-ink-400 focus:outline-none"/>
+            {nameQuery && (
+              <button onClick={() => setNameQuery('')} className="shrink-0 w-4 h-4 rounded-full bg-ink-200 flex items-center justify-center tap" aria-label="清除">
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="#666" strokeWidth="2.5" strokeLinecap="round"/></svg>
+              </button>
+            )}
+          </div>
+          <button onClick={() => setFilterOpen(true)}
+            className="w-9 h-9 bg-ink-50 rounded-full flex items-center justify-center tap relative shrink-0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M3 5h18l-7 9v6l-4-2v-4L3 5z" stroke="#666" strokeWidth="1.8" strokeLinejoin="round"/>
+            </svg>
+            {activeAdvancedCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-brand text-white text-[10px] rounded-full flex items-center justify-center">{activeAdvancedCount}</span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* 共 N 条 + 导出 */}
+      <div className="px-3 pt-3 flex items-center justify-between">
+        <span className="text-[11px] text-ink-500">共 {filtered.length} 条</span>
+        <button onClick={() => showToast('已发起导出', 'success')}
+          className="h-7 px-3 bg-brand text-white rounded text-[11px] flex items-center gap-1 tap active:opacity-90">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+            <path d="M12 4v12m0 0l-5-5m5 4l5-5M4 20h16" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          导出
+        </button>
+      </div>
+
+      {/* 卡片列表 */}
+      <div className="px-3 pt-2 space-y-2">
+        {filtered.map((item, i) => (
+          <AdvertiserApplyCard
+            key={item.id || i}
+            item={item}
+            fields={fields}
+            onRevoke={() => handleRevoke(item)}
+            onAction={(action, it) => {
+              if (action === '详情') nav(`/advertiser/apply/detail/${it.id}`)
+              else if (action === '撤销') handleRevoke(it)
+              else showToast(`${action}：${it.id}`, 'info')
+            }}
+          />
+        ))}
+      </div>
+
+      {/* 分页（仅展示） */}
+      <div className="px-3 pt-4 pb-2 flex items-center justify-center gap-2 text-[12px] text-ink-700">
+        <button className="w-8 h-8 rounded-full bg-white border border-ink-200 flex items-center justify-center tap">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="#999" strokeWidth="2" strokeLinecap="round"/></svg>
+        </button>
+        <button className="w-8 h-8 rounded-full bg-brand text-white flex items-center justify-center font-medium">1</button>
+        <button className="w-8 h-8 rounded-full bg-white border border-ink-200 flex items-center justify-center tap">2</button>
+        <span className="text-ink-400 px-1">...</span>
+        <button className="w-8 h-8 rounded-full bg-white border border-ink-200 flex items-center justify-center tap">3</button>
+        <button className="w-8 h-8 rounded-full bg-white border border-ink-200 flex items-center justify-center tap">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="#999" strokeWidth="2" strokeLinecap="round"/></svg>
+        </button>
+      </div>
+      <div className="px-3 pb-3 flex items-center justify-center gap-2 text-[11px] text-ink-500">
+        <span>{PAGE_SIZE}条/页</span>
+        <span className="text-ink-300">|</span>
+        <span>共 {data.length} 条</span>
+      </div>
+
+      {/* 高级筛选弹窗（PC截图 3 字段） */}
+      {filterOpen && ApplyAdvancedFilter}
+
+      {/* 撤销 dialog */}
+      {revokeTarget && (
+        <RevokeDialog
+          onCancel={() => setRevokeTarget(null)}
+          onConfirm={confirmRevoke}
+        />
+      )}
+
+      {/* Toast */}
+      {toast && <Toast type={toast.type} message={toast.msg}/>}
+    </>
   )
 }
 
 function AdvertiserDetailListSection({ node }) {
+  return <AdvertiserDetailListSectionInner node={node}/>
+}
+
+// ============ 开户明细列表（PC截图版：单行开户序列号搜索 + 漏斗 7字段）============
+function AdvertiserDetailListSectionInner({ node }) {
+  const data = node.data || []
+  const fields = node.fields || []
+  const nav = useNavigate()
+
+  // 多开户导入 modal
   const [importOpen, setImportOpen] = useState(false)
+
+  // 行内 开户序列号搜索
+  const [seqQuery, setSeqQuery] = useState('')
+  // 漏斗 sheet 7 字段（按 PC截图：集团名称 / 政策名称 / 开户主体 / 媒体平台 / 开户状态 / 下户时间 / 下户申请人）
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [advanced, setAdvanced] = useState({
+    groupName: '',    // 集团名称
+    policyName: '',   // 政策名称
+    subject: '',      // 开户主体
+    platform: '',     // 媒体平台
+    status: '',       // 开户状态
+    createdStart: '', // 下户时间-起
+    createdEnd: '',   // 下户时间-止
+    creator: '',      // 下户申请人
+  })
+
+  const GROUP_OPTIONS = Array.from(new Set(data.map(d => d.groupName).filter(Boolean)))
+  const POLICY_OPTIONS = Array.from(new Set(data.map(d => d.policyName).filter(Boolean)))
+  const SUBJECT_OPTIONS = Array.from(new Set(data.map(d => d.subject).filter(Boolean)))
+  const PLATFORM_OPTIONS = Array.from(new Set(data.map(d => d.platform).filter(Boolean)))
+  const STATUS_OPTIONS = Array.from(new Set(data.map(d => d.status).filter(Boolean)))
+
+  const handleSheetApply = () => { setFilterOpen(false) }
+  const handleSheetReset = () => {
+    setAdvanced({
+      groupName: '', policyName: '', subject: '', platform: '', status: '',
+      createdStart: '', createdEnd: '', creator: '',
+    })
+  }
+
+  const activeAdvancedCount = Object.values(advanced).filter(Boolean).length
+
+  const filtered = data.filter(item => {
+    if (seqQuery && !item.seqNo?.includes(seqQuery)) return false
+    if (advanced.groupName  && item.groupName  !== advanced.groupName)  return false
+    if (advanced.policyName && item.policyName !== advanced.policyName) return false
+    if (advanced.subject    && item.subject    !== advanced.subject)    return false
+    if (advanced.platform   && item.platform   !== advanced.platform)   return false
+    if (advanced.status     && item.status     !== advanced.status)     return false
+    if (advanced.createdStart && item.created && item.created.slice(0,10) < advanced.createdStart) return false
+    if (advanced.createdEnd   && item.created && item.created.slice(0,10) > advanced.createdEnd)   return false
+    if (advanced.creator    && item.creator    !== advanced.creator)    return false
+    return true
+  })
+
+  // Toast
+  const [toast, setToast] = useState(null)
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type })
+    setTimeout(() => setToast(null), 1800)
+  }
+
+  // Sheet 字段配置（左右布局：左字段栏 + 右值区）
+  const sheetFields = [
+    { key: 'groupName',    label: '集团名称', kind: 'select', options: GROUP_OPTIONS },
+    { key: 'policyName',   label: '政策名称', kind: 'select', options: POLICY_OPTIONS },
+    { key: 'subject',      label: '开户主体', kind: 'select', options: SUBJECT_OPTIONS },
+    { key: 'platform',     label: '媒体平台', kind: 'select', options: PLATFORM_OPTIONS },
+    { key: 'status',       label: '开户状态', kind: 'select', options: STATUS_OPTIONS },
+    { key: 'createdRange', label: '下户时间', kind: 'daterange' },
+    { key: 'creator',      label: '下户申请人', kind: 'input' },
+  ]
+  const [sheetActive, setSheetActive] = useState('groupName')
+  const activeField = sheetFields.find(f => f.key === sheetActive)
+  const setSheet = (k, v) => setAdvanced(a => ({ ...a, [k]: v }))
+
+  const DetailAdvancedFilter = (
+    <div className="fixed inset-0 z-[60] bg-black/40 flex items-end" onClick={() => setFilterOpen(false)}>
+      <div className="w-full bg-white rounded-t-2xl h-[80vh] flex flex-col relative" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-ink-100">
+          <h2 className="text-[15px] font-medium text-ink-900">高级筛选</h2>
+          <button onClick={() => setFilterOpen(false)} className="w-7 h-7 flex items-center justify-center tap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="#999" strokeWidth="2" strokeLinecap="round"/></svg>
+          </button>
+        </div>
+        <div className="flex flex-1 min-h-0">
+          <div className="w-[100px] bg-ink-50 overflow-y-auto">
+            {sheetFields.map(f => (
+              <button key={f.key} onClick={() => setSheetActive(f.key)}
+                className={`w-full px-3 py-3 text-left text-[12px] tap border-l-2 ${
+                  sheetActive === f.key ? 'bg-white text-brand border-brand font-medium' : 'text-ink-700 border-transparent'
+                }`}>{f.label}</button>
+            ))}
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">
+            {activeField?.kind === 'input' && (
+              <input value={advanced[sheetActive] || ''} onChange={e => setSheet(sheetActive, e.target.value)}
+                placeholder={`请输入${activeField.label}`}
+                className="w-full h-9 px-3 bg-ink-50 rounded text-[13px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-1 focus:ring-brand"/>
+            )}
+            {activeField?.kind === 'select' && (
+              <div className="space-y-2">
+                <label onClick={() => setSheet(sheetActive, '')} className="flex items-center gap-2 px-2 py-2 rounded tap cursor-pointer">
+                  <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${!advanced[sheetActive] ? 'border-brand' : 'border-ink-200'}`}>
+                    {!advanced[sheetActive] && <span className="w-2 h-2 rounded-full bg-brand"/>}
+                  </span>
+                  <span className="text-[13px] text-ink-900">全部</span>
+                </label>
+                {activeField.options.map(opt => (
+                  <label key={opt} onClick={() => setSheet(sheetActive, opt)} className="flex items-center gap-2 px-2 py-2 rounded tap cursor-pointer">
+                    <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${advanced[sheetActive] === opt ? 'border-brand' : 'border-ink-200'}`}>
+                      {advanced[sheetActive] === opt && <span className="w-2 h-2 rounded-full bg-brand"/>}
+                    </span>
+                    <span className="text-[13px] text-ink-900">{opt}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+            {activeField?.kind === 'daterange' && (
+              <div className="flex items-center gap-2">
+                <input type="date" value={advanced.createdStart} onChange={e => setAdvanced(a => ({ ...a, createdStart: e.target.value }))}
+                  className="flex-1 h-9 px-3 bg-ink-50 rounded text-[12px] text-ink-900 focus:outline-none focus:ring-1 focus:ring-brand"/>
+                <span className="text-ink-400 text-[12px]">~</span>
+                <input type="date" value={advanced.createdEnd} onChange={e => setAdvanced(a => ({ ...a, createdEnd: e.target.value }))}
+                  className="flex-1 h-9 px-3 bg-ink-50 rounded text-[12px] text-ink-900 focus:outline-none focus:ring-1 focus:ring-brand"/>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="flex-none flex border-t border-ink-100 px-3 py-3 gap-3 bg-white">
+          <button onClick={handleSheetReset} className="flex-1 h-11 bg-white border border-ink-200 rounded-full text-[14px] text-ink-700 active:bg-ink-50 tap">重 置</button>
+          <button onClick={handleSheetApply} className="flex-1 h-11 bg-brand text-white rounded-full text-[14px] active:opacity-90 tap">确 认</button>
+        </div>
+      </div>
+    </div>
+  )
+
   return (
     <>
-    <AdvertiserListSection
-      node={node}
-      config={{
-        defaultFieldKey: 'detailName',
-        fieldOptions: [
-          { key: 'detailName', label: '明细名称' },
-          { key: 'seqNo', label: '开户序列号' },
-          { key: 'groupName', label: '集团名称' },
-          { key: 'policyName', label: '政策名称' },
-          { key: 'sales', label: '销售' },
-        ],
-        chipLabel1: '状态',
-        chipKey1: 'status',
-        chipOptions1: () => ['完成', '撤销'],
-        chipLabel2: '媒体平台',
-        chipKey2: 'platform',
-        chipOptions2: (data) => Array.from(new Set(data.map(d => d.platform).filter(Boolean))),
-        advancedInit: { policyName: '', industryL1: '', industryL2: '', operator: '', creator: '', sales: '', createdStart: '', createdEnd: '' },
-        allowRevoke: false,
-        detailPath: (it) => `/advertiser/detail/info/${it.id}`,
-        Card: AdvertiserDetailCard,
-        extraHeader: () => (
-          <button onClick={() => setImportOpen(true)}
-            className="h-7 px-3 bg-brand text-white rounded text-[11px] flex items-center gap-1 tap active:opacity-90">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-              <path d="M12 4v12m0 0l-5-5m5 4l5-5M4 20h16" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      {/* 钉钉式查询条件卡（单行：开户序列号搜索 + 漏斗） */}
+      <div className="card mx-3 mt-3 overflow-hidden">
+        <div className="flex items-center gap-2 px-3 py-2.5">
+          <span className="text-[11px] text-ink-500 shrink-0">开户序列号</span>
+          <div className="flex-1 flex items-center gap-1.5 h-8 px-3 bg-ink-50 rounded-full min-w-0">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className="shrink-0">
+              <circle cx="11" cy="11" r="6" stroke="#999" strokeWidth="1.8"/>
+              <path d="M20 20l-3.5-3.5" stroke="#999" strokeWidth="1.8" strokeLinecap="round"/>
             </svg>
-            多开户导入
+            <input value={seqQuery} onChange={e => setSeqQuery(e.target.value)}
+              placeholder="请输入开户序列号"
+              className="flex-1 min-w-0 bg-transparent text-[12px] text-ink-900 placeholder:text-ink-400 focus:outline-none"/>
+            {seqQuery && (
+              <button onClick={() => setSeqQuery('')} className="shrink-0 w-4 h-4 rounded-full bg-ink-200 flex items-center justify-center tap" aria-label="清除">
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="#666" strokeWidth="2.5" strokeLinecap="round"/></svg>
+              </button>
+            )}
+          </div>
+          <button onClick={() => setFilterOpen(true)}
+            className="w-9 h-9 bg-ink-50 rounded-full flex items-center justify-center tap relative shrink-0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M3 5h18l-7 9v6l-4-2v-4L3 5z" stroke="#666" strokeWidth="1.8" strokeLinejoin="round"/>
+            </svg>
+            {activeAdvancedCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-brand text-white text-[10px] rounded-full flex items-center justify-center">{activeAdvancedCount}</span>
+            )}
           </button>
-        ),
-      }}
-    />
-    {importOpen && <MultiImportModal onClose={() => setImportOpen(false)}/>}
+        </div>
+      </div>
+
+      {/* 共 N 条 + 多开户导入 */}
+      <div className="px-3 pt-3 flex items-center justify-between">
+        <span className="text-[11px] text-ink-500">共 {filtered.length} 条</span>
+        <button onClick={() => setImportOpen(true)}
+          className="h-7 px-3 bg-brand text-white rounded text-[11px] flex items-center gap-1 tap active:opacity-90">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+            <path d="M12 4v12m0 0l-5-5m5 4l5-5M4 20h16" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          多开户导入
+        </button>
+      </div>
+
+      {/* 卡片列表 */}
+      <div className="px-3 pt-2 space-y-2">
+        {filtered.map((item, i) => (
+          <AdvertiserDetailCard
+            key={item.id || i}
+            item={item}
+            fields={fields}
+            onAction={(action, it) => {
+              if (action === '详情') nav(`/advertiser/detail/info/${it.id}`)
+              else showToast(`${action}：${it.id}`, 'info')
+            }}
+          />
+        ))}
+      </div>
+
+      {/* 高级筛选弹窗（PC截图 7 字段，左右布局） */}
+      {filterOpen && DetailAdvancedFilter}
+
+      {/* 多开户导入 modal */}
+      {importOpen && <MultiImportModal onClose={() => setImportOpen(false)}/>}
+
+      {/* Toast */}
+      {toast && <Toast type={toast.type} message={toast.msg}/>}
     </>
   )
 }
@@ -3736,30 +4090,31 @@ function PolicyListSection({ node }) {
   // 钉钉式：行内政策名称搜索框 + 漏斗
   const [nameQuery, setNameQuery] = useState('')
   const [filterOpen, setFilterOpen] = useState(false)
+  // 高级筛选字段（PC截图 8 字段）：政策名称 / 审批状态 / 付款方式 / 集团名称 / 销售人 / 业绩归属人 / 创建人 / 项目
   const [advanced, setAdvanced] = useState({
-    project: '', platform: '', customerName: '', groupName: '', creator: '',
-    approval: '', payType: '', updatedStart: '', updatedEnd: '',
+    name: '', approval: '', payType: '',
+    groupName: '', sales: '', salesOwner: '', creator: '', project: '',
   })
   const [changeOpen, setChangeOpen] = useState(false)
   const [changeItem, setChangeItem] = useState(null)
 
   const APPROVAL_OPTIONS = ['审批通过', '审批中', '已驳回']
   const PAY_TYPE_OPTIONS = Array.from(new Set(data.map(d => d.payType).filter(Boolean)))
+  const GROUP_OPTIONS = Array.from(new Set(data.map(d => d.groupName).filter(Boolean)))
 
-  const otherAdvancedCount = Object.entries(advanced).filter(([k, v]) => v && k !== 'updatedStart' && k !== 'updatedEnd').length
+  const otherAdvancedCount = Object.values(advanced).filter(Boolean).length
   const activeFilterCount = (nameQuery ? 1 : 0) + otherAdvancedCount
 
   const filteredData = data.filter(item => {
     if (nameQuery && !String(item.name || '').includes(nameQuery)) return false
-    if (advanced.updatedStart && item.updatedAt && item.updatedAt < advanced.updatedStart) return false
-    if (advanced.updatedEnd   && item.updatedAt && item.updatedAt > advanced.updatedEnd) return false
-    if (advanced.project && !String(item.project || '').includes(advanced.project)) return false
-    if (advanced.platform && item.platform !== advanced.platform) return false
-    if (advanced.customerName && !String(item.customerName || '').includes(advanced.customerName)) return false
-    if (advanced.groupName && !String(item.groupName || '').includes(advanced.groupName)) return false
-    if (advanced.creator && !String(item.creator || '').includes(advanced.creator)) return false
+    if (advanced.name && !String(item.name || '').includes(advanced.name)) return false
     if (advanced.approval && item.approval !== advanced.approval) return false
     if (advanced.payType && item.payType !== advanced.payType) return false
+    if (advanced.groupName && item.groupName !== advanced.groupName) return false
+    if (advanced.sales && !String(item.agentName || '').includes(advanced.sales)) return false
+    if (advanced.salesOwner && !String(item.salesOwner || '').includes(advanced.salesOwner)) return false
+    if (advanced.creator && !String(item.creator || '').includes(advanced.creator)) return false
+    if (advanced.project && !String(item.project || '').includes(advanced.project)) return false
     return true
   })
 
@@ -3842,10 +4197,11 @@ function PolicyListSection({ node }) {
           data={data}
           approvalOptions={APPROVAL_OPTIONS}
           payTypeOptions={PAY_TYPE_OPTIONS}
+          groupOptions={GROUP_OPTIONS}
           onApply={() => setFilterOpen(false)}
           onReset={() => setAdvanced({
-            project: '', platform: '', customerName: '', groupName: '', creator: '',
-            approval: '', payType: '', updatedStart: '', updatedEnd: '',
+            name: '', approval: '', payType: '',
+            groupName: '', sales: '', salesOwner: '', creator: '', project: '',
           })}
           onClose={() => setFilterOpen(false)}/>
       )}
@@ -3937,30 +4293,29 @@ function PolicyChangeSheet({ item, onClose }) {
   )
 }
 
-// 政策高级筛选（左侧+右侧双栏布局，与广告主管理一致）
-function PolicyListAdvancedFilter({ values, setValues, data, approvalOptions, payTypeOptions, onClose, onReset, onApply }) {
+// 政策高级筛选（左侧+右侧双栏布局，PC截图 8 字段）
+function PolicyListAdvancedFilter({ values, setValues, approvalOptions, payTypeOptions, groupOptions, onClose, onReset, onApply }) {
   const handleApply = () => { onApply && onApply(); onClose() }
-  const platformOpts = Array.from(new Set(data.map(d => d.platform).filter(Boolean)))
 
   const fields = [
-    { key: 'project', label: '项目名称', kind: 'input' },
-    { key: 'platform', label: '媒体平台', kind: 'select', options: platformOpts },
-    { key: 'customerName', label: '客户名称', kind: 'input' },
-    { key: 'groupName', label: '集团名称', kind: 'input' },
-    { key: 'creator', label: '创建人', kind: 'input' },
-    { key: 'approval', label: '审批状态', kind: 'select', options: approvalOptions || [] },
-    { key: 'payType', label: '付款方式', kind: 'select', options: payTypeOptions || [] },
-    { key: 'updatedRange', label: '更新时间', kind: 'daterange' },
+    { key: 'name',       label: '政策名称', kind: 'input' },
+    { key: 'approval',   label: '审批状态', kind: 'select', options: approvalOptions || [] },
+    { key: 'payType',    label: '付款方式', kind: 'select', options: payTypeOptions || [] },
+    { key: 'groupName',  label: '集团名称', kind: 'select', options: groupOptions || [] },
+    { key: 'sales',      label: '销售人',   kind: 'input' },
+    { key: 'salesOwner', label: '业绩归属人', kind: 'input' },
+    { key: 'creator',    label: '创建人',   kind: 'input' },
+    { key: 'project',    label: '项目',     kind: 'input' },
   ]
 
-  const [active, setActive] = useState('project')
+  const [active, setActive] = useState('name')
   const activeField = fields.find(f => f.key === active)
   const set = (k, v) => setValues(s => ({ ...s, [k]: v }))
 
   const handleReset = () => {
     setValues({
-      project: '', platform: '', customerName: '', groupName: '', creator: '',
-      approval: '', payType: '', updatedStart: '', updatedEnd: '',
+      name: '', approval: '', payType: '',
+      groupName: '', sales: '', salesOwner: '', creator: '', project: '',
     })
     onReset && onReset()
   }
@@ -4049,58 +4404,68 @@ function LivePolicyListSection({ node }) {
     setTimeout(() => setToast(null), 1800)
   }
 
-  // 钉钉式：行内日期 + 漏斗
-  const [dateRange, setDateRange] = useState({ start: '', end: '' })
+  // 钉钉式：行内客户名称搜索 + 漏斗（PC截图 7 字段）
+  const [customerQuery, setCustomerQuery] = useState('')
   const [filterOpen, setFilterOpen] = useState(false)
   const [advanced, setAdvanced] = useState({
-    groupName: '', platform: '', sales: '', applicant: '',
-    approval: '', applyDateStart: '', applyDateEnd: '',
+    customerName: '',
+    applyDateStart: '', applyDateEnd: '',
+    approval: '',
+    groupName: '', sales: '', applicant: '', platform: '',
   })
   const [revokeOpen, setRevokeOpen] = useState(false)
   const [revokeItem, setRevokeItem] = useState(null)
 
   const APPROVAL_OPTIONS = ['审批通过', '审批中', '已驳回', '已撤销']
 
-  const handleDateChange = ({ start, end }) => {
-    setDateRange({ start, end })
-    setAdvanced(a => ({ ...a, applyDateStart: start, applyDateEnd: end }))
-  }
-  const handleSheetApply = () => {
-    setDateRange({ start: advanced.applyDateStart || '', end: advanced.applyDateEnd || '' })
-    setFilterOpen(false)
-  }
+  const handleSheetApply = () => setFilterOpen(false)
   const handleSheetReset = () => {
     setAdvanced({
-      groupName: '', platform: '', sales: '', applicant: '',
-      approval: '', applyDateStart: '', applyDateEnd: '',
+      customerName: '',
+      applyDateStart: '', applyDateEnd: '',
+      approval: '',
+      groupName: '', sales: '', applicant: '', platform: '',
     })
-    setDateRange({ start: '', end: '' })
   }
 
-  const otherAdvancedCount = Object.entries(advanced).filter(([k, v]) => v && k !== 'applyDateStart' && k !== 'applyDateEnd').length
-  const activeFilterCount = (dateRange.start || dateRange.end ? 1 : 0) + otherAdvancedCount
+  const otherAdvancedCount = Object.values(advanced).filter(Boolean).length
+  const activeFilterCount = (customerQuery ? 1 : 0) + otherAdvancedCount
 
   const filteredData = data.filter(item => {
-    const ds = advanced.applyDateStart || dateRange.start
-    const de = advanced.applyDateEnd || dateRange.end
-    if (ds && item.applyDate < ds) return false
-    if (de && item.applyDate > de) return false
-    if (advanced.groupName && !String(item.groupName || '').includes(advanced.groupName)) return false
-    if (advanced.platform && item.platform !== advanced.platform) return false
+    if (customerQuery && !String(item.customerName || '').includes(customerQuery)) return false
+    if (advanced.customerName && !String(item.customerName || '').includes(advanced.customerName)) return false
+    if (advanced.applyDateStart && item.applyDate < advanced.applyDateStart) return false
+    if (advanced.applyDateEnd   && item.applyDate > advanced.applyDateEnd)   return false
+    if (advanced.approval && item.approval !== advanced.approval) return false
+    if (advanced.groupName && item.groupName !== advanced.groupName) return false
     if (advanced.sales && item.sales !== advanced.sales) return false
     if (advanced.applicant && !String(item.applicant || '').includes(advanced.applicant)) return false
-    if (advanced.approval && item.approval !== advanced.approval) return false
+    if (advanced.platform && item.platform !== advanced.platform) return false
     return true
   })
 
   return (
     <>
-      {/* 钉钉式查询条件卡（单行：日期 + 漏斗） */}
+      {/* 钉钉式查询条件卡（单行：客户名称搜索 + 漏斗） */}
       <div className="card mx-3 mt-3 overflow-hidden">
         <div className="flex items-center gap-2 px-3 py-2.5">
-          <span className="text-[11px] text-ink-500 shrink-0">申请日期</span>
-          <DateRangePicker value={dateRange} onChange={handleDateChange}/>
-          <div className="flex-1"/>
+          <span className="text-[11px] text-ink-500 shrink-0">客户名称</span>
+          <div className="flex-1 bg-ink-50 rounded-full h-9 flex items-center px-4 text-[12px]">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="mr-2 shrink-0">
+              <circle cx="11" cy="11" r="7" stroke="#999" strokeWidth="2"/>
+              <path d="M16 16l4 4" stroke="#999" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            <input value={customerQuery} onChange={e => setCustomerQuery(e.target.value)}
+              placeholder="请输入客户名称"
+              className="flex-1 bg-transparent text-ink-900 placeholder:text-ink-400 focus:outline-none"/>
+            {customerQuery && (
+              <button onClick={() => setCustomerQuery('')} className="tap shrink-0">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                  <path d="M6 6l12 12M6 18L18 6" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </button>
+            )}
+          </div>
           <button onClick={() => setFilterOpen(true)}
             className="w-9 h-9 bg-ink-50 rounded-full flex items-center justify-center tap relative shrink-0">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -4209,27 +4574,32 @@ function LivePolicyCard({ item, onAction }) {
   )
 }
 
-// 直播政策高级筛选（左侧+右侧双栏布局，与广告主管理一致）
+// 直播政策高级筛选（左侧+右侧双栏布局，PC截图 7 字段）
 function LivePolicyAdvancedFilter({ values, setValues, data, approvalOptions = [], onApply, onReset, onClose }) {
+  const groupOpts = Array.from(new Set(data.map(d => d.groupName).filter(Boolean)))
+  const salesOpts = Array.from(new Set(data.map(d => d.sales).filter(Boolean)))
   const platformOpts = Array.from(new Set(data.map(d => d.platform).filter(Boolean)))
 
   const fields = [
-    { key: 'groupName', label: '集团', kind: 'input' },
-    { key: 'sales', label: '销售', kind: 'input' },
-    { key: 'applicant', label: '申请人', kind: 'input' },
-    { key: 'platform', label: '媒体', kind: 'select', options: platformOpts },
-    { key: 'approval', label: '审批状态', kind: 'select', options: approvalOptions },
-    { key: 'applyDateRange', label: '申请日期', kind: 'dateRange' },
+    { key: 'customerName',  label: '客户名称', kind: 'input' },
+    { key: 'approval',      label: '审批状态', kind: 'select', options: approvalOptions },
+    { key: 'groupName',     label: '集团',     kind: 'select', options: groupOpts },
+    { key: 'sales',         label: '销售',     kind: 'select', options: salesOpts },
+    { key: 'applicant',     label: '申请人',   kind: 'input' },
+    { key: 'platform',      label: '媒体',     kind: 'select', options: platformOpts },
+    { key: 'applyDateRange',label: '申请日期', kind: 'daterange' },
   ]
 
-  const [active, setActive] = useState('groupName')
+  const [active, setActive] = useState('customerName')
   const activeField = fields.find(f => f.key === active)
   const set = (k, v) => setValues(s => ({ ...s, [k]: v }))
 
   const handleReset = () => {
     setValues({
-      groupName: '', platform: '', sales: '', applicant: '',
-      approval: '', applyDateStart: '', applyDateEnd: '',
+      customerName: '',
+      applyDateStart: '', applyDateEnd: '',
+      approval: '',
+      groupName: '', sales: '', applicant: '', platform: '',
     })
     onReset && onReset()
   }
@@ -4282,7 +4652,7 @@ function LivePolicyAdvancedFilter({ values, setValues, data, approvalOptions = [
                 ))}
               </div>
             )}
-            {activeField?.kind === 'dateRange' && (
+            {activeField?.kind === 'daterange' && (
               <div className="space-y-2">
                 <input type="date" value={values.applyDateStart || ''}
                   onChange={e => set('applyDateStart', e.target.value)}
@@ -4322,58 +4692,67 @@ function MaterialPurchaseListSection({ node }) {
     setTimeout(() => setToast(null), 1800)
   }
 
-  // 钉钉式：行内日期 + 漏斗
-  const [dateRange, setDateRange] = useState({ start: '', end: '' })
+  // 钉钉式：行内客户名称搜索 + 漏斗（PC截图 6 字段）
+  const [customerQuery, setCustomerQuery] = useState('')
   const [filterOpen, setFilterOpen] = useState(false)
   const [advanced, setAdvanced] = useState({
-    groupName: '', platform: '', videoType: '', applicant: '',
-    approval: '', applyDateStart: '', applyDateEnd: '',
+    customerName: '',
+    applyDateStart: '', applyDateEnd: '',
+    approval: '',
+    groupName: '', applicant: '', platform: '',
   })
   const [revokeOpen, setRevokeOpen] = useState(false)
   const [revokeItem, setRevokeItem] = useState(null)
 
   const APPROVAL_OPTIONS = ['审批通过', '审批中', '已驳回', '已撤销']
 
-  const handleDateChange = ({ start, end }) => {
-    setDateRange({ start, end })
-    setAdvanced(a => ({ ...a, applyDateStart: start, applyDateEnd: end }))
-  }
-  const handleSheetApply = () => {
-    setDateRange({ start: advanced.applyDateStart || '', end: advanced.applyDateEnd || '' })
-    setFilterOpen(false)
-  }
+  const handleSheetApply = () => setFilterOpen(false)
   const handleSheetReset = () => {
     setAdvanced({
-      groupName: '', platform: '', videoType: '', applicant: '',
-      approval: '', applyDateStart: '', applyDateEnd: '',
+      customerName: '',
+      applyDateStart: '', applyDateEnd: '',
+      approval: '',
+      groupName: '', applicant: '', platform: '',
     })
-    setDateRange({ start: '', end: '' })
   }
 
-  const otherAdvancedCount = Object.entries(advanced).filter(([k, v]) => v && k !== 'applyDateStart' && k !== 'applyDateEnd').length
-  const activeFilterCount = (dateRange.start || dateRange.end ? 1 : 0) + otherAdvancedCount
+  const otherAdvancedCount = Object.values(advanced).filter(Boolean).length
+  const activeFilterCount = (customerQuery ? 1 : 0) + otherAdvancedCount
 
   const filteredData = data.filter(item => {
-    const ds = advanced.applyDateStart || dateRange.start
-    const de = advanced.applyDateEnd || dateRange.end
-    if (ds && item.applyDate < ds) return false
-    if (de && item.applyDate > de) return false
-    if (advanced.groupName && !String(item.groupName || '').includes(advanced.groupName)) return false
-    if (advanced.platform && item.platform !== advanced.platform) return false
-    if (advanced.videoType && !(item.videoTypes || []).includes(advanced.videoType)) return false
-    if (advanced.applicant && !String(item.applicant || '').includes(advanced.applicant)) return false
+    if (customerQuery && !String(item.customerName || '').includes(customerQuery)) return false
+    if (advanced.customerName && !String(item.customerName || '').includes(advanced.customerName)) return false
+    if (advanced.applyDateStart && item.applyDate < advanced.applyDateStart) return false
+    if (advanced.applyDateEnd   && item.applyDate > advanced.applyDateEnd)   return false
     if (advanced.approval && item.approval !== advanced.approval) return false
+    if (advanced.groupName && item.groupName !== advanced.groupName) return false
+    if (advanced.applicant && !String(item.applicant || '').includes(advanced.applicant)) return false
+    if (advanced.platform && item.platform !== advanced.platform) return false
     return true
   })
 
   return (
     <>
-      {/* 钉钉式查询条件卡（单行：日期 + 漏斗） */}
+      {/* 钉钉式查询条件卡（单行：客户名称搜索 + 漏斗） */}
       <div className="card mx-3 mt-3 overflow-hidden">
         <div className="flex items-center gap-2 px-3 py-2.5">
-          <span className="text-[11px] text-ink-500 shrink-0">申请日期</span>
-          <DateRangePicker value={dateRange} onChange={handleDateChange}/>
-          <div className="flex-1"/>
+          <span className="text-[11px] text-ink-500 shrink-0">客户名称</span>
+          <div className="flex-1 bg-ink-50 rounded-full h-9 flex items-center px-4 text-[12px]">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="mr-2 shrink-0">
+              <circle cx="11" cy="11" r="7" stroke="#999" strokeWidth="2"/>
+              <path d="M16 16l4 4" stroke="#999" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            <input value={customerQuery} onChange={e => setCustomerQuery(e.target.value)}
+              placeholder="请输入客户名称"
+              className="flex-1 bg-transparent text-ink-900 placeholder:text-ink-400 focus:outline-none"/>
+            {customerQuery && (
+              <button onClick={() => setCustomerQuery('')} className="tap shrink-0">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                  <path d="M6 6l12 12M6 18L18 6" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </button>
+            )}
+          </div>
           <button onClick={() => setFilterOpen(true)}
             className="w-9 h-9 bg-ink-50 rounded-full flex items-center justify-center tap relative shrink-0">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -4485,28 +4864,30 @@ function MaterialPurchaseCard({ item, onAction }) {
   )
 }
 
-// 素材采买高级筛选（左侧+右侧双栏布局，与广告主管理一致）
+// 素材采买高级筛选（左侧+右侧双栏布局，PC截图 6 字段）
 function MaterialAdvancedFilter({ values, setValues, data, approvalOptions = [], onApply, onReset, onClose }) {
+  const groupOpts = Array.from(new Set(data.map(d => d.groupName).filter(Boolean)))
   const platformOpts = Array.from(new Set(data.map(d => d.platform).filter(Boolean)))
-  const videoOpts = Array.from(new Set(data.map(d => d.videoType).filter(Boolean)))
 
   const fields = [
-    { key: 'groupName', label: '集团', kind: 'input' },
-    { key: 'platform', label: '媒体', kind: 'select', options: platformOpts },
-    { key: 'videoType', label: '视频类型', kind: 'select', options: videoOpts },
-    { key: 'applicant', label: '申请人', kind: 'input' },
-    { key: 'approval', label: '审批状态', kind: 'select', options: approvalOptions },
-    { key: 'applyDateRange', label: '申请日期', kind: 'dateRange' },
+    { key: 'customerName',  label: '客户名称', kind: 'input' },
+    { key: 'approval',      label: '审批状态', kind: 'select', options: approvalOptions },
+    { key: 'groupName',     label: '集团',     kind: 'select', options: groupOpts },
+    { key: 'applicant',     label: '申请人',   kind: 'input' },
+    { key: 'platform',      label: '媒体',     kind: 'select', options: platformOpts },
+    { key: 'applyDateRange',label: '申请日期', kind: 'daterange' },
   ]
 
-  const [active, setActive] = useState('groupName')
+  const [active, setActive] = useState('customerName')
   const activeField = fields.find(f => f.key === active)
   const set = (k, v) => setValues(s => ({ ...s, [k]: v }))
 
   const handleReset = () => {
     setValues({
-      groupName: '', platform: '', videoType: '', applicant: '',
-      approval: '', applyDateStart: '', applyDateEnd: '',
+      customerName: '',
+      applyDateStart: '', applyDateEnd: '',
+      approval: '',
+      groupName: '', applicant: '', platform: '',
     })
     onReset && onReset()
   }
@@ -4559,7 +4940,7 @@ function MaterialAdvancedFilter({ values, setValues, data, approvalOptions = [],
                 ))}
               </div>
             )}
-            {activeField?.kind === 'dateRange' && (
+            {activeField?.kind === 'daterange' && (
               <div className="space-y-2">
                 <input type="date" value={values.applyDateStart || ''}
                   onChange={e => set('applyDateStart', e.target.value)}
@@ -5657,19 +6038,18 @@ function StaffKpiDataSection({ emp, deptLabel, data, highlightMedia, onMediaClic
 //   2. 漏斗 Sheet 含全部条件：创建人、媒体平台、变更类型
 //   3. 卡片列表：每条变更一张卡（修改类型 chip + 媒体 + 变更说明 + 修改前后 + 创建人 + 时间）
 //   4. 分页器：15 条/页
-function ChangeLogAdvancedFilter({ values, setValues, mediaOptions, typeOptions, onClose, onApply }) {
+function ChangeLogAdvancedFilter({ values, setValues, mediaOptions, operatorOptions, onClose, onApply }) {
   const fields = [
-    { key: 'operator', label: '创建人',   kind: 'input' },
-    { key: 'media',    label: '媒体平台', kind: 'select', options: mediaOptions },
-    { key: 'type',     label: '变更类型', kind: 'select', options: typeOptions },
-    { key: 'timeRange', label: '创建时间', kind: 'daterange' },
+    { key: 'operator',   label: '创建人',   kind: 'select', options: operatorOptions },
+    { key: 'media',      label: '媒体平台', kind: 'select', options: mediaOptions },
+    { key: 'timeRange',  label: '创建时间', kind: 'daterange' },
   ]
   const [active, setActive] = useState('operator')
   const set = (k, v) => setValues(s => ({ ...s, [k]: v }))
   const activeField = fields.find(f => f.key === active)
   const handleApply = () => { onApply && onApply(); onClose() }
   const handleReset = () => {
-    setValues({ operator: '', media: '', type: '', timeStart: '', timeEnd: '' })
+    setValues({ operator: '', media: '', timeStart: '', timeEnd: '' })
   }
   return (
     <div className="fixed inset-0 z-[60] bg-black/40 flex items-end" onClick={onClose}>
@@ -5737,11 +6117,11 @@ function ChangeLogAdvancedFilter({ values, setValues, mediaOptions, typeOptions,
 
 function ChangeLogSection() {
   const MEDIA_OPTS = Array.from(new Set(changeLogData.map(d => d.media).filter(Boolean)))
-  const TYPE_OPTS  = Array.from(new Set(changeLogData.map(d => d.type).filter(Boolean)))
+  const OPERATOR_OPTS = Array.from(new Set(changeLogData.map(d => d.operator).filter(Boolean)))
   const [dateRange, setDateRange] = useState({ start: '', end: '' })
   const [filterOpen, setFilterOpen] = useState(false)
   const [advanced, setAdvanced] = useState({
-    operator: '', media: '', type: '',
+    operator: '', media: '',
     timeStart: '', timeEnd: '',
   })
   const [page, setPage] = useState(1)
@@ -5761,9 +6141,8 @@ function ChangeLogSection() {
 
   // 筛选
   const filtered = changeLogData.filter(r => {
-    if (advanced.operator && !r.operator.includes(advanced.operator)) return false
+    if (advanced.operator && r.operator !== advanced.operator) return false
     if (advanced.media && r.media !== advanced.media) return false
-    if (advanced.type && r.type !== advanced.type) return false
     const ds = advanced.timeStart || dateRange.start
     const de = advanced.timeEnd   || dateRange.end
     if (ds && r.time < ds) return false
@@ -5883,7 +6262,7 @@ function ChangeLogSection() {
           values={advanced}
           setValues={setAdvanced}
           mediaOptions={MEDIA_OPTS}
-          typeOptions={TYPE_OPTS}
+          operatorOptions={OPERATOR_OPTS}
           onApply={handleSheetApply}
           onClose={() => setFilterOpen(false)}
         />
@@ -6490,7 +6869,7 @@ function OperationListSection({ node }) {
   const [dateRange, setDateRange] = useState({ start: '', end: '' })
   const [filterOpen, setFilterOpen] = useState(false)
   const [advanced, setAdvanced] = useState({
-    advId: '', advName: '', groupName: '', projectName: '', platform: '', operator: '', dateStart: '', dateEnd: '',
+    advId: '', groupName: '', platform: '', operator: '', dateStart: '', dateEnd: '',
   })
   const [page, setPage] = useState(1)
   const [toast, setToast] = useState('')
@@ -6498,6 +6877,8 @@ function OperationListSection({ node }) {
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 1500) }
 
   const PLATFORM_OPTIONS = ['巨量引擎', '磁力金牛', '千川', 'TikTok', '腾讯广告', '聚光']
+  const GROUP_OPTIONS = Array.from(new Set(data.map(d => d.groupName).filter(Boolean)))
+  const OPERATOR_OPTIONS = Array.from(new Set(data.map(d => d.operator).filter(Boolean)))
 
   // 同步行内 dateRange 到 advanced（sheet 复用同一份）
   const handleDateChange = ({ start, end }) => {
@@ -6509,7 +6890,7 @@ function OperationListSection({ node }) {
     setFilterOpen(false)
   }
   const handleSheetReset = () => {
-    setAdvanced({ advId: '', advName: '', groupName: '', projectName: '', platform: '', operator: '', dateStart: '', dateEnd: '' })
+    setAdvanced({ advId: '', groupName: '', platform: '', operator: '', dateStart: '', dateEnd: '' })
     setDateRange({ start: '', end: '' })
   }
 
@@ -6524,11 +6905,9 @@ function OperationListSection({ node }) {
     if (ds && r.date < ds) return false
     if (de && r.date > de) return false
     if (advanced.advId       && !r.advId?.toString().includes(advanced.advId)) return false
-    if (advanced.advName     && !r.advName?.toString().includes(advanced.advName)) return false
-    if (advanced.groupName   && !r.groupName?.toString().includes(advanced.groupName)) return false
-    if (advanced.projectName && !r.projectName?.toString().includes(advanced.projectName)) return false
+    if (advanced.groupName   && r.groupName !== advanced.groupName) return false
     if (advanced.platform    && r.platform !== advanced.platform) return false
-    if (advanced.operator    && !r.operator?.toString().includes(advanced.operator)) return false
+    if (advanced.operator    && r.operator !== advanced.operator) return false
     return true
   })
   const safePage = Math.min(page, Math.max(1, Math.ceil(filtered.length / PAGE_SIZE)))
@@ -6622,6 +7001,8 @@ function OperationListSection({ node }) {
           values={advanced}
           setValues={setAdvanced}
           platformOptions={PLATFORM_OPTIONS}
+          groupOptions={GROUP_OPTIONS}
+          operatorOptions={OPERATOR_OPTIONS}
           onApply={handleSheetApply}
           onClose={() => setFilterOpen(false)}
         />
@@ -6649,10 +7030,10 @@ const MINGDIAN_CONFIG = {
   ],
   defaultFieldKey: 'customerName',
   advancedFields: [
-    { key: 'customerName', label: '客户主体', kind: 'input' },
-    { key: 'groupName', label: '集团', kind: 'input' },
-    { key: 'mediaPlatform', label: '媒体平台', kind: 'select' },
     { key: 'dateRange', label: '统计日期', kind: 'daterange', dateField: 'consumeDate' },
+    { key: 'groupName', label: '集团', kind: 'select' },
+    { key: 'customerName', label: '客户主体', kind: 'input' },
+    { key: 'mediaPlatform', label: '媒体平台', kind: 'select' },
   ],
 }
 
@@ -6996,6 +7377,7 @@ function ConsumptionAdvancedFilter({ values, setValues, fields, selectOptionsByF
   const handleReset = () => {
     setValues(buildAdvancedInit(fields))
   }
+  const handleApply = () => { onClose() }
 
   return (
     <div className="fixed inset-0 z-[60] bg-black/40 flex items-end" onClick={onClose}>
@@ -7066,22 +7448,20 @@ function ConsumptionAdvancedFilter({ values, setValues, fields, selectOptionsByF
 }
 
 // ============ 运营消耗列表 - 高级筛选 Sheet（全部查询条件）============
-function OperationAdvancedFilter({ values, setValues, platformOptions, onClose, onApply }) {
+function OperationAdvancedFilter({ values, setValues, platformOptions, groupOptions, operatorOptions, onClose, onApply }) {
   const fields = [
-    { key: 'advId', label: '广告主ID', kind: 'input' },
-    { key: 'advName', label: '广告主名称', kind: 'input' },
-    { key: 'groupName', label: '集团名称', kind: 'input' },
-    { key: 'projectName', label: '项目名称', kind: 'input' },
-    { key: 'platform', label: '媒体平台', kind: 'select', options: platformOptions },
-    { key: 'operator', label: '运营人员', kind: 'input' },
-    { key: 'dateRange', label: '创建时间', kind: 'daterange' },
+    { key: 'advId',      label: '广告主ID', kind: 'input' },
+    { key: 'groupName',  label: '集团名称', kind: 'select', options: groupOptions },
+    { key: 'platform',   label: '媒体平台', kind: 'select', options: platformOptions },
+    { key: 'operator',   label: '运营人员', kind: 'select', options: operatorOptions },
+    { key: 'dateRange',  label: '创建时间', kind: 'daterange' },
   ]
   const [active, setActive] = useState('advId')
   const set = (k, v) => setValues(s => ({ ...s, [k]: v }))
   const activeField = fields.find(f => f.key === active)
 
   const handleReset = () => {
-    setValues({ advId: '', advName: '', groupName: '', projectName: '', platform: '', operator: '', dateStart: '', dateEnd: '' })
+    setValues({ advId: '', groupName: '', platform: '', operator: '', dateStart: '', dateEnd: '' })
   }
   const handleApply = () => { onApply && onApply(); onClose() }
 
@@ -7165,8 +7545,8 @@ function AccountIdSection({ node }) {
   const [keyword, setKeyword] = useState('')
   const [filterOpen, setFilterOpen] = useState(false)
   const [advanced, setAdvanced] = useState({
-    sales: '', operator: '', platform: '', policyName: '',
-    groupKeyword: '', dateStart: '', dateEnd: '',
+    advId: '', groupName: '', policyName: '',
+    sales: '', operator: '', platform: '',
   })
   // Tab: 认领/分配运营 | 未绑定运营人员
   const [tab, setTab] = useState('all') // 'all' | 'unbound'
@@ -7175,6 +7555,9 @@ function AccountIdSection({ node }) {
   const [batchOpen, setBatchOpen] = useState(false)
 
   const PLATFORM_OPTIONS = ['头条-AD', '磁力金牛', '聚光', '腾讯广告', '千川']
+  const GROUP_OPTIONS = Array.from(new Set(data.map(d => d.customerGroup).filter(Boolean)))
+  const POLICY_OPTIONS = Array.from(new Set(data.map(d => d.policyName).filter(Boolean)))
+  const SALES_OPTIONS = Array.from(new Set(data.map(d => d.sales).filter(Boolean)))
   const OPERATOR_OPTIONS = Array.from(new Set(data.map(d => d.operatorInfo?.split(' · ')[0]).filter(Boolean)))
 
   const activeAdvancedCount = Object.values(advanced).filter(v => v).length
@@ -7182,11 +7565,12 @@ function AccountIdSection({ node }) {
   const filtered = data.filter(r => {
     if (keyword && !r.advId?.includes(keyword)) return false
     if (tab === 'unbound' && r.hasOperator) return false
-    if (advanced.groupKeyword && !r.customerGroup?.includes(advanced.groupKeyword)) return false
-    if (advanced.sales && !r.sales?.includes(advanced.sales)) return false
+    if (advanced.advId && !r.advId?.includes(advanced.advId)) return false
+    if (advanced.groupName && r.customerGroup !== advanced.groupName) return false
+    if (advanced.policyName && r.policyName !== advanced.policyName) return false
+    if (advanced.sales && r.sales !== advanced.sales) return false
     if (advanced.operator && !r.operatorInfo?.includes(advanced.operator)) return false
     if (advanced.platform && r.platform !== advanced.platform) return false
-    if (advanced.policyName && !r.policyName?.includes(advanced.policyName)) return false
     return true
   })
   const safePage = Math.min(page, Math.max(1, Math.ceil(filtered.length / PAGE_SIZE)))
@@ -7200,7 +7584,7 @@ function AccountIdSection({ node }) {
   const hasAnyFilter = Boolean(keyword || activeAdvancedCount > 0)
   const handleReset = () => {
     setKeyword('')
-    setAdvanced({ sales: '', operator: '', platform: '', policyName: '', groupKeyword: '', dateStart: '', dateEnd: '' })
+    setAdvanced({ advId: '', groupName: '', policyName: '', sales: '', operator: '', platform: '' })
   }
 
   const toggleAll = () => {
@@ -7333,6 +7717,10 @@ function AccountIdSection({ node }) {
           values={advanced}
           setValues={setAdvanced}
           platformOptions={PLATFORM_OPTIONS}
+          groupOptions={GROUP_OPTIONS}
+          policyOptions={POLICY_OPTIONS}
+          salesOptions={SALES_OPTIONS}
+          operatorOptions={OPERATOR_OPTIONS}
           onClose={() => setFilterOpen(false)}
         />
       )}
@@ -7350,22 +7738,22 @@ function AccountIdSection({ node }) {
 }
 
 // ============ 账户ID - 高级筛选 Sheet ============
-function AccountIdAdvancedFilter({ values, setValues, platformOptions, onApply, onReset, onClose }) {
+function AccountIdAdvancedFilter({ values, setValues, platformOptions, groupOptions, policyOptions, salesOptions, operatorOptions, onApply, onReset, onClose }) {
   const handleApply = () => { onApply && onApply(); onClose && onClose() }
   const fields = [
-    { key: 'sales', label: '销售', kind: 'input' },
-    { key: 'operator', label: '运营人员', kind: 'input' },
-    { key: 'platform', label: '媒体平台', kind: 'select', options: platformOptions },
-    { key: 'policyName', label: '政策名称', kind: 'input' },
-    { key: 'groupKeyword', label: '集团名称', kind: 'input' },
-    { key: 'dateRange', label: '创建时间', kind: 'daterange' },
+    { key: 'advId',      label: '广告主ID', kind: 'input' },
+    { key: 'groupName',  label: '集团名称', kind: 'select', options: groupOptions },
+    { key: 'policyName', label: '政策名称', kind: 'select', options: policyOptions },
+    { key: 'sales',      label: '销售',     kind: 'select', options: salesOptions },
+    { key: 'operator',   label: '运营人员', kind: 'select', options: operatorOptions },
+    { key: 'platform',   label: '媒体平台', kind: 'select', options: platformOptions },
   ]
-  const [active, setActive] = useState('sales')
+  const [active, setActive] = useState('advId')
   const set = (k, v) => setValues(s => ({ ...s, [k]: v }))
   const activeField = fields.find(f => f.key === active)
 
   const handleReset = () => {
-    setValues({ sales: '', operator: '', platform: '', policyName: '', groupKeyword: '', dateStart: '', dateEnd: '' })
+    setValues({ advId: '', groupName: '', policyName: '', sales: '', operator: '', platform: '' })
     onReset && onReset()
   }
 

@@ -823,13 +823,7 @@ function TopBar({ title, onBack }) {
           </svg>
         </button>
         <h1 className="text-base font-medium absolute left-0 right-0 text-center pointer-events-none">{title}</h1>
-        <button className="w-8 h-8 flex items-center justify-center tap relative z-10">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <circle cx="5" cy="12" r="1.5" fill="white"/>
-            <circle cx="12" cy="12" r="1.5" fill="white"/>
-            <circle cx="19" cy="12" r="1.5" fill="white"/>
-          </svg>
-        </button>
+        <div className="w-8 h-8 relative z-10"/>
       </div>
     </div>
   )
