@@ -6334,7 +6334,6 @@ function PoolDataPagination({ total, page, totalPages, onChange }) {
 // ============ 运营消耗列表（PC 表格样式 + 钉钉式筛选 + 高级搜索 + 下载）============
 function OperationListSection({ node }) {
   const data = node.data || []
-  const fields = node.fields || []
   const PAGE_SIZE = 15
   const total = data.length
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
@@ -6398,8 +6397,6 @@ function OperationListSection({ node }) {
     showToast('下载任务已提交，请稍后到消息中心查看')
   }
 
-  const totalWidth = fields.reduce((s, f) => s + (f.width || 100), 0)
-
   return (
     <div className="bg-ink-50 pb-4">
       {/* 钉钉式查询条件卡（单行：字段 + 输入 + 🔍 + 漏斗） */}
@@ -6447,40 +6444,38 @@ function OperationListSection({ node }) {
         </button>
       </div>
 
-      {/* 表格（横向滚动） */}
-      <div className="mx-3 mt-2 bg-white rounded-lg overflow-hidden">
-        <div className="overflow-x-auto scrollbar-hide">
-          <table className="text-[12px]" style={{ minWidth: totalWidth }}>
-            <thead className="bg-ink-50 text-ink-500">
-              <tr>
-                {fields.map(f => (
-                  <th key={f.key} className="px-3 py-2.5 text-left font-medium whitespace-nowrap" style={{ minWidth: f.width }}>
-                    {f.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-ink-100">
-              {list.map((row, i) => (
-                <tr key={i} className="hover:bg-ink-50/50">
-                  {fields.map(f => (
-                    <td key={f.key} className="px-3 py-2.5 whitespace-nowrap" style={{ minWidth: f.width }}>
-                      <FieldCell field={f} value={row[f.key]}/>
-                    </td>
-                  ))}
-                </tr>
-              ))}
-              {list.length === 0 && (
-                <tr>
-                  <td colSpan={fields.length} className="px-3 py-8 text-center text-[12px] text-ink-400">
-                    暂无数据
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+      {/* 卡片列表（App 适配） */}
+      {list.length === 0 ? (
+        <div className="mx-3 mt-2 py-10 text-center text-ink-400 text-[13px] card">暂无数据</div>
+      ) : (
+        <div className="mx-3 mt-2 space-y-2">
+          {list.map((row, i) => (
+            <div key={`${row.advId}-${row.date}-${i}`} className="card overflow-hidden">
+              <div className="px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-ink-400 tabular-nums">{row.date}</span>
+                  <span className="text-[11px] text-ink-500 bg-ink-50 px-2 py-0.5 rounded">{row.platform}</span>
+                </div>
+                <div className="mt-1.5 text-[14px] text-ink-900 truncate">{row.advName}</div>
+                <div className="mt-1 text-[11px] text-ink-500 truncate">
+                  {row.groupName} · {row.projectName}
+                </div>
+                <div className="mt-2 flex items-center justify-between pt-2 border-t border-ink-100 gap-2">
+                  <div className="flex items-center gap-1.5 text-[11px] text-ink-500 min-w-0 flex-1">
+                    <span className="bg-ink-50 px-1.5 py-0.5 rounded shrink-0">{row.groupId}</span>
+                    <span className="truncate">运营：{row.operator}</span>
+                    <span className="font-mono text-[10px] tabular-nums shrink-0">ID:{row.advId.slice(-6)}</span>
+                  </div>
+                  <div className="text-[15px] font-semibold text-brand tabular-nums shrink-0">
+                    {Number(row.nonGiftConsumption).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    <span className="ml-0.5 text-[10px] text-ink-400 font-normal">元</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
+      )}
 
       {/* 分页 */}
       <PoolDataPagination total={filtered.length} page={safePage} totalPages={Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))} onChange={setPage}/>
