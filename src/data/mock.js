@@ -1016,7 +1016,7 @@ const performanceData = [
 // ============ 业绩汇总（App 端 4 维度 + 媒体消耗概览）============
 // 9 个媒体卡（按 PC 截图）
 const mediaOverview = [
-  { key: 'total', label: '总计', highlight: true, nonGift: '235,520.65', total: '393,349.32', gift: '157,508.46', daily: '22,308.19', qoq: 0 },
+  { key: 'total', label: '总计', nonGift: '235,520.65', total: '393,349.32', gift: '157,508.46', daily: '22,308.19', qoq: 0 },
   { key: 'tt-all', label: '头条总', nonGift: '235,195.36', total: '393,014.38', gift: '157,368.74', daily: '22,269.71', qoq: 0 },
   { key: 'tt-ad', label: '头条-AD', nonGift: '78,537.30', total: '131,136.63', gift: '52,449.18', daily: '2,379.92', qoq: 0 },
   { key: 'tt-qc', label: '头条-千川', nonGift: '78,225.11', total: '130,830.03', gift: '52,454.86', daily: '11,175.02', qoq: 0 },
