@@ -19,7 +19,6 @@ import ContactCreatePage from './pages/ContactCreatePage'
 import BackgroundEditPage from './pages/BackgroundEditPage'
 import AccountCreatePage from './pages/AccountCreatePage'
 import AccountOperatorEditPage from './pages/AccountOperatorEditPage'
-import MonthlyReportDetailPage from './pages/MonthlyReportDetailPage'
 import ProjectCreatePage from './pages/ProjectCreatePage'
 import ProjectDetailPage from './pages/ProjectDetailPage'
 import ProjectRestartPage from './pages/ProjectRestartPage'
@@ -72,7 +71,6 @@ export default function App() {
             <Route path="/account/create" element={<AccountCreatePage />} />
             <Route path="/account/edit/:id" element={<AccountCreatePage />} />
             <Route path="/account/operator-edit/:advId" element={<AccountOperatorEditPage />} />
-            <Route path="/monthly/detail" element={<MonthlyReportDetailPage />} />
             <Route path="/project/create" element={<ProjectCreatePage />} />
             <Route path="/project/edit/:id" element={<ProjectCreatePage />} />
             <Route path="/project/detail/:id" element={<ProjectDetailPage />} />
