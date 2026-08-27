@@ -12,6 +12,7 @@ import MediaSemiAnnualReportPage from '../MediaSemiAnnualReportPage'
 import MediaYearlyReportPage from '../MediaYearlyReportPage'
 import OperationReportPage from '../OperationReportPage'
 import DateRangePicker from '../../components/DateRangePicker'
+import FeatureIcon from '../../components/FeatureIcon'
 import dayjs from 'dayjs'
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
@@ -195,7 +196,7 @@ function ChildMenuGrid({ items, onClick }) {
       <div className="grid grid-cols-4 gap-y-3 px-2 pb-3">
         {items.map(c => (
           <button key={c.id} onClick={() => onClick(c)} className="flex flex-col items-center gap-1.5 tap">
-            <ChildIcon color={c.color}/>
+            <FeatureIcon name={c.icon || c.label} color={c.color} size={44}/>
             <span className="text-[11px] text-ink-900 text-center leading-tight px-1">{c.label}</span>
           </button>
         ))}
