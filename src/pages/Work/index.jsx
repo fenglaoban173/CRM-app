@@ -90,7 +90,7 @@ function SearchBar({ onActiveChange }) {
         list.push({
           id: c.id,
           label: c.label,
-          icon: c.label,
+          icon: c.icon || c.label,
           color: c.color || fallbackColor,
           section,
           target: c.id,
@@ -278,7 +278,7 @@ function ModuleSection({ moduleId, label, color }) {
             onClick={() => nav(`/m/${c.id}`)}
             className="flex flex-col items-center gap-1.5 tap"
           >
-            <FeatureIcon name={c.label} color={c.color || color} size={42}/>
+            <FeatureIcon name={c.icon || c.label} color={c.color || color} size={42}/>
             <span className="text-[11px] text-ink-900 text-center leading-tight px-1">{c.label}</span>
           </button>
         ))}

@@ -446,6 +446,51 @@ function IconSvg({ name, color, size }) {
           <path d="M14.5 15h3M16 13.5v3" {...stroke} />
         </svg>
       )
+    case '开户申请':
+      return (
+        <svg {...props}>
+          <rect x="4" y="3" width="13" height="18" rx="2" {...stroke} />
+          <path d="M7 8h7M7 12h7M7 16h4" {...stroke} />
+          <circle cx="18" cy="6" r="3.5" fill={color}/>
+          <path d="M18 4.5v3M16.5 6h3" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+        </svg>
+      )
+    case '开户明细':
+      return (
+        <svg {...props}>
+          <rect x="4" y="3" width="16" height="18" rx="2" {...stroke} />
+          <path d="M4 8h16" {...stroke} />
+          <circle cx="8" cy="13" r="0.8" fill={color}/>
+          <path d="M10.5 13h7" {...stroke} />
+          <circle cx="8" cy="17" r="0.8" fill={color}/>
+          <path d="M10.5 17h6" {...stroke} />
+        </svg>
+      )
+    case '账户列表':
+      return (
+        <svg {...props}>
+          <rect x="3" y="5" width="18" height="4" rx="1" {...stroke} />
+          <circle cx="6.5" cy="7" r="1" fill={color}/>
+          <path d="M10 7h8" {...stroke} />
+          <rect x="3" y="11" width="18" height="4" rx="1" {...stroke} />
+          <circle cx="6.5" cy="13" r="1" fill={color}/>
+          <path d="M10 13h8" {...stroke} />
+          <rect x="3" y="17" width="18" height="4" rx="1" {...stroke} />
+          <circle cx="6.5" cy="19" r="1" fill={color}/>
+          <path d="M10 19h6" {...stroke} />
+        </svg>
+      )
+    case '任务列表':
+      return (
+        <svg {...props}>
+          <rect x="4" y="4" width="16" height="16" rx="2" {...stroke} />
+          <rect x="7" y="8" width="3" height="3" rx="0.5" fill={color}/>
+          <path d="M7.5 9.5l1 1 2-2" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M12 9.5h6M12 12.5h5" {...stroke} />
+          <rect x="7" y="14" width="3" height="3" rx="0.5" {...stroke}/>
+          <path d="M12 15.5h6M12 18.5h4" {...stroke} />
+        </svg>
+      )
     case '客户政策明细':
       return (
         <svg {...props}>
@@ -523,6 +568,118 @@ function IconSvg({ name, color, size }) {
         </svg>
       )
     // 通用
+    case 'board':
+      return (
+        <svg {...props}>
+          <rect x="4" y="4" width="16" height="16" rx="2" {...stroke} />
+          <rect x="7" y="7" width="3" height="3" rx="0.5" fill={color}/>
+          <rect x="14" y="7" width="3" height="3" rx="0.5" fill={color}/>
+          <rect x="7" y="14" width="3" height="3" rx="0.5" fill={color}/>
+          <path d="M13 14h4M13 17h3" {...stroke} />
+        </svg>
+      )
+    case 'briefcase':
+      return (
+        <svg {...props}>
+          <rect x="3" y="7" width="18" height="13" rx="2" {...stroke} />
+          <path d="M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2" {...stroke} />
+          <path d="M3 12h18" {...stroke} />
+        </svg>
+      )
+    case 'card':
+      return (
+        <svg {...props}>
+          <rect x="3" y="5" width="18" height="14" rx="2" {...stroke} />
+          <path d="M3 9h18" {...stroke} />
+          <path d="M6 15h4M6 17h7" {...stroke} />
+        </svg>
+      )
+    case 'chart':
+      return (
+        <svg {...props}>
+          <path d="M4 20V4M4 20h16" {...stroke} />
+          <rect x="7" y="13" width="3" height="5" rx="0.5" fill={color} stroke={color}/>
+          <rect x="12" y="9" width="3" height="9" rx="0.5" fill={color} stroke={color}/>
+          <path d="M16 5l3 3-5 6" {...stroke} />
+        </svg>
+      )
+    case 'check':
+      return (
+        <svg {...props}>
+          <circle cx="12" cy="12" r="9" {...stroke} />
+          <path d="M8 12l3 3 5-6" {...stroke} />
+        </svg>
+      )
+    case 'dashboard':
+      return (
+        <svg {...props}>
+          <rect x="3" y="3" width="8" height="8" rx="1.5" {...stroke} />
+          <rect x="13" y="3" width="8" height="5" rx="1.5" {...stroke} />
+          <rect x="13" y="10" width="8" height="11" rx="1.5" {...stroke} />
+          <rect x="3" y="13" width="8" height="8" rx="1.5" {...stroke} />
+        </svg>
+      )
+    case 'document':
+      return (
+        <svg {...props}>
+          <path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z" {...stroke} />
+          <path d="M14 3v6h6" {...stroke} />
+          <path d="M8 13h8M8 17h5" {...stroke} />
+        </svg>
+      )
+    case 'files':
+      return (
+        <svg {...props}>
+          <path d="M13 3H6a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8" {...stroke} />
+          <path d="M13 3v5h5" {...stroke} />
+          <path d="M3 8v11a2 2 0 002 2h9" {...stroke} />
+        </svg>
+      )
+    case 'money':
+      return (
+        <svg {...props}>
+          <rect x="2" y="6" width="20" height="12" rx="2" {...stroke} />
+          <circle cx="12" cy="12" r="3" {...stroke} />
+          <path d="M6 9v.01M18 15v.01" {...stroke} />
+        </svg>
+      )
+    case 'monitor':
+      return (
+        <svg {...props}>
+          <rect x="3" y="4" width="18" height="13" rx="1.5" {...stroke} />
+          <path d="M8 21h8M12 17v4" {...stroke} />
+        </svg>
+      )
+    case 'notebook':
+      return (
+        <svg {...props}>
+          <rect x="5" y="3" width="14" height="18" rx="2" {...stroke} />
+          <path d="M5 7h14M5 11h14M5 15h14M5 19h14" {...stroke} />
+          <rect x="3" y="6" width="2" height="12" rx="0.5" fill={color}/>
+        </svg>
+      )
+    case 'risk':
+      return (
+        <svg {...props}>
+          <path d="M12 3l10 18H2L12 3z" {...stroke} />
+          <path d="M12 10v4" {...stroke} />
+          <circle cx="12" cy="17" r="0.8" fill={color}/>
+        </svg>
+      )
+    case 'setting':
+      return (
+        <svg {...props}>
+          <circle cx="12" cy="12" r="3" {...stroke} />
+          <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1" {...stroke} />
+        </svg>
+      )
+    case 'tickets':
+      return (
+        <svg {...props}>
+          <path d="M3 7a2 2 0 012-2h14a2 2 0 012 2v3a2 2 0 100 4v3a2 2 0 01-2 2H5a2 2 0 01-2-2v-3a2 2 0 100-4V7z" {...stroke} />
+          <path d="M10 8v8" {...stroke} />
+        </svg>
+      )
     case 'arrow-right':
       return (
         <svg {...props}>
