@@ -499,45 +499,64 @@ function GroupListSection({ node }) {
 }
 
 // ============ 通用卡片式列表（业务主体/项目）============
-// ============ 主体列表（钉钉式查询：日期范围 + 漏斗 + 新建/导出）============
+// ============ 主体列表（钉钉式查询：客户名称搜索 + 漏斗 + 新建/导出）============
 function SubjectListSection({ node }) {
   const data = node.data || []
   const fields = node.fields || []
   const nav = useNavigate()
 
-  // 钉钉式查询：行内单条件（日期范围）+ 漏斗 sheet 含全部条件
-  const [dateRange, setDateRange] = useState({ start: '', end: '' })
+  // 钉钉式：行内 客户名称搜索 + 漏斗 sheet 含全部条件
+  const [nameQuery, setNameQuery] = useState('')
   const [filterOpen, setFilterOpen] = useState(false)
   const [advanced, setAdvanced] = useState({
     customerCode: '', bankAccount: '', phone: '', creditCode: '',
     tag: '', accountType: '', industry: '', status: '', groupName: '', sales: '',
-    createdStart: '', createdEnd: '',
   })
 
   const INDUSTRY_OPTIONS = ['互联网', '电商', '广告', '文化', '医疗', '食品', '美业']
   const STATUS_OPTIONS = ['生效', '失效']
   const GROUP_OPTIONS = Array.from(new Set(data.map(d => d.groupName).filter(Boolean)))
 
-  const handleDateChange = ({ start, end }) => {
-    setDateRange({ start, end })
-    setAdvanced(a => ({ ...a, createdStart: start, createdEnd: end }))
-  }
-  const handleSheetApply = () => {
-    setDateRange({ start: advanced.createdStart || '', end: advanced.createdEnd || '' })
-    setFilterOpen(false)
-  }
+  const handleSheetApply = () => { setFilterOpen(false) }
 
-  const otherAdvancedCount = Object.entries(advanced).filter(([k, v]) => v && k !== 'createdStart' && k !== 'createdEnd').length
-  const activeAdvancedCount = (dateRange.start || dateRange.end ? 1 : 0) + otherAdvancedCount
+  // 顶行不计入 nameQuery；漏斗条件数 = advanced 非空项
+  const activeAdvancedCount = Object.values(advanced).filter(Boolean).length
+
+  const filtered = data.filter(item => {
+    if (nameQuery && !item.customerName?.includes(nameQuery)) return false
+    if (advanced.customerCode && !item.customerCode?.includes(advanced.customerCode)) return false
+    if (advanced.bankAccount && !item.bankAccount?.includes(advanced.bankAccount)) return false
+    if (advanced.phone && !item.phone?.includes(advanced.phone)) return false
+    if (advanced.creditCode && !item.creditCode?.includes(advanced.creditCode)) return false
+    if (advanced.tag && !item.tag?.includes(advanced.tag)) return false
+    if (advanced.accountType && item.accountType !== advanced.accountType) return false
+    if (advanced.industry && item.industry !== advanced.industry) return false
+    if (advanced.status && item.status !== advanced.status) return false
+    if (advanced.groupName && item.groupName !== advanced.groupName) return false
+    if (advanced.sales && !item.sales?.includes(advanced.sales)) return false
+    return true
+  })
 
   return (
     <>
-      {/* 钉钉式查询条件卡（单行：日期 + 漏斗） */}
+      {/* 钉钉式查询条件卡（单行：客户名称搜索 + 漏斗） */}
       <div className="card mx-3 mt-3 overflow-hidden">
         <div className="flex items-center gap-2 px-3 py-2.5">
-          <span className="text-[11px] text-ink-500 shrink-0">创建日期</span>
-          <DateRangePicker value={dateRange} onChange={handleDateChange}/>
-          <div className="flex-1"/>
+          <span className="text-[11px] text-ink-500 shrink-0">客户名称</span>
+          <div className="flex-1 flex items-center gap-1.5 h-8 px-3 bg-ink-50 rounded-full min-w-0">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className="shrink-0">
+              <circle cx="11" cy="11" r="6" stroke="#999" strokeWidth="1.8"/>
+              <path d="M20 20l-3.5-3.5" stroke="#999" strokeWidth="1.8" strokeLinecap="round"/>
+            </svg>
+            <input value={nameQuery} onChange={e => setNameQuery(e.target.value)}
+              placeholder="请输入客户名称"
+              className="flex-1 min-w-0 bg-transparent text-[12px] text-ink-900 placeholder:text-ink-400 focus:outline-none"/>
+            {nameQuery && (
+              <button onClick={() => setNameQuery('')} className="shrink-0 w-4 h-4 rounded-full bg-ink-200 flex items-center justify-center tap" aria-label="清除">
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="#666" strokeWidth="2.5" strokeLinecap="round"/></svg>
+              </button>
+            )}
+          </div>
           <button onClick={() => setFilterOpen(true)}
             className="w-9 h-9 bg-ink-50 rounded-full flex items-center justify-center tap relative shrink-0">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -552,7 +571,7 @@ function SubjectListSection({ node }) {
 
       {/* 共 N 条 + 导出（右侧） */}
       <div className="px-3 pt-3 flex items-center justify-between">
-        <span className="text-[11px] text-ink-500">共 {data.length} 条</span>
+        <span className="text-[11px] text-ink-500">共 {filtered.length} 条</span>
         <button className="h-7 px-3 bg-brand text-white rounded text-[11px] flex items-center gap-1 tap active:opacity-90">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
             <path d="M12 4v12m0 0l-5-5m5 4l5-5M4 20h16" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -563,7 +582,7 @@ function SubjectListSection({ node }) {
 
       {/* 卡片列表 */}
       <div className="px-3 pt-2 space-y-2">
-        {data.map((item, i) => (
+        {filtered.map((item, i) => (
           <SubjectCard key={item.id || i} item={item} fields={fields}/>
         ))}
       </div>
@@ -601,7 +620,7 @@ function SubjectFab({ onClick }) {
   )
 }
 
-// ============ 项目列表（钉钉式：日期 + 漏斗 + 卡片 + FAB）============
+// ============ 项目列表（钉钉式：项目名称搜索 + 漏斗 + 卡片 + FAB）============
 function ProjectListSection({ node }) {
   const data = node.data || []
   const PAGE_SIZE = 5
@@ -609,15 +628,13 @@ function ProjectListSection({ node }) {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const nav = useNavigate()
 
-  // 行 1：日期范围 + 漏斗
-  const [dateRange, setDateRange] = useState({ start: '', end: '' })
+  // 行内单条件（项目名称搜索）+ 漏斗 sheet 含全部条件
+  const [nameQuery, setNameQuery] = useState('')
   const [filterOpen, setFilterOpen] = useState(false)
-  // 高级筛选（包含原 row1/row2 + advanced 所有字段）
   const [advanced, setAdvanced] = useState({
-    name: '', code: '', internalCode: '', projectId: '',
+    code: '', internalCode: '', projectId: '',
     groupFilter: '', customerFilter: '',
     platform: '', creator: '', industry: '', sales: '', status: '',
-    createdStart: '', createdEnd: '',
   })
   const [page, setPage] = useState(1)
 
@@ -629,20 +646,12 @@ function ProjectListSection({ node }) {
   const CREATOR_OPTIONS = Array.from(new Set(data.map(d => d.creator).filter(Boolean)))
   const STATUS_OPTIONS = ['审批通过', '审批中', '审批拒绝', '已撤销']
 
-  const handleDateChange = ({ start, end }) => {
-    setDateRange({ start, end })
-    setAdvanced(a => ({ ...a, createdStart: start, createdEnd: end }))
-  }
-  const handleSheetApply = () => {
-    setDateRange({ start: advanced.createdStart || '', end: advanced.createdEnd || '' })
-    setFilterOpen(false)
-  }
+  const handleSheetApply = () => { setFilterOpen(false) }
 
-  const otherAdvancedCount = Object.entries(advanced).filter(([k, v]) => v && k !== 'createdStart' && k !== 'createdEnd').length
-  const activeAdvancedCount = (dateRange.start || dateRange.end ? 1 : 0) + otherAdvancedCount
+  const activeAdvancedCount = Object.values(advanced).filter(Boolean).length
 
   const filtered = data.filter(p => {
-    if (advanced.name         && !p.name?.includes(advanced.name)) return false
+    if (nameQuery && !p.name?.includes(nameQuery)) return false
     if (advanced.code         && !p.code?.includes(advanced.code)) return false
     if (advanced.internalCode && !p.internalCode?.includes(advanced.internalCode)) return false
     if (advanced.projectId    && !p.projectId?.includes(advanced.projectId)) return false
@@ -653,22 +662,35 @@ function ProjectListSection({ node }) {
     if (advanced.industry && p.industry !== advanced.industry) return false
     if (advanced.sales    && p.salesName !== advanced.sales) return false
     if (advanced.status   && p.status !== advanced.status) return false
-    if (advanced.createdStart && p.createdAt && p.createdAt < advanced.createdStart) return false
-    if (advanced.createdEnd   && p.createdAt && p.createdAt > advanced.createdEnd) return false
     return true
   })
-  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const totalFiltered = filtered.length
+  const totalPagesFiltered = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE))
+  const safePage = Math.min(page, totalPagesFiltered)
+  const paged = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
-  useEffect(() => { setPage(1) }, [advanced, dateRange])
+  useEffect(() => { setPage(1) }, [advanced, nameQuery])
 
   return (
     <>
-      {/* 钉钉式查询条件卡（单行：日期 + 漏斗） */}
+      {/* 钉钉式查询条件卡（单行：项目名称搜索 + 漏斗） */}
       <div className="card mx-3 mt-3 overflow-hidden">
         <div className="flex items-center gap-2 px-3 py-2.5">
-          <span className="text-[11px] text-ink-500 shrink-0">创建日期</span>
-          <DateRangePicker value={dateRange} onChange={handleDateChange}/>
-          <div className="flex-1"/>
+          <span className="text-[11px] text-ink-500 shrink-0">项目名称</span>
+          <div className="flex-1 flex items-center gap-1.5 h-8 px-3 bg-ink-50 rounded-full min-w-0">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className="shrink-0">
+              <circle cx="11" cy="11" r="6" stroke="#999" strokeWidth="1.8"/>
+              <path d="M20 20l-3.5-3.5" stroke="#999" strokeWidth="1.8" strokeLinecap="round"/>
+            </svg>
+            <input value={nameQuery} onChange={e => setNameQuery(e.target.value)}
+              placeholder="请输入项目名称"
+              className="flex-1 min-w-0 bg-transparent text-[12px] text-ink-900 placeholder:text-ink-400 focus:outline-none"/>
+            {nameQuery && (
+              <button onClick={() => setNameQuery('')} className="shrink-0 w-4 h-4 rounded-full bg-ink-200 flex items-center justify-center tap" aria-label="清除">
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="#666" strokeWidth="2.5" strokeLinecap="round"/></svg>
+              </button>
+            )}
+          </div>
           <button onClick={() => setFilterOpen(true)}
             className="w-9 h-9 bg-ink-50 rounded-full flex items-center justify-center tap relative shrink-0">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -914,7 +936,6 @@ function ProjectPagination({ total, page, pageSize, totalPages, onChange }) {
 // ============ 项目高级筛选弹窗（钉钉式左字段 + 右条件）============
 function ProjectAdvancedFilter({ values, setValues, platforms, creators, industries, sales, statuses, groupOptions, customerOptions, onReset, onClose, onApply }) {
   const fields = [
-    { key: 'name',          label: '项目名称',     kind: 'input' },
     { key: 'code',          label: '项目编号',     kind: 'input' },
     { key: 'internalCode',  label: '内部自动编码', kind: 'input' },
     { key: 'groupFilter',   label: '集团名称',     kind: 'select', options: groupOptions },
@@ -924,17 +945,15 @@ function ProjectAdvancedFilter({ values, setValues, platforms, creators, industr
     { key: 'industry',      label: '客户所属行业', kind: 'select', options: industries },
     { key: 'sales',         label: '销售人员',     kind: 'select', options: sales },
     { key: 'status',        label: '审批状态',     kind: 'select', options: statuses },
-    { key: 'createdRange',  label: '创建日期',     kind: 'daterange' },
   ]
-  const [active, setActive] = useState('name')
+  const [active, setActive] = useState('code')
   const set = (k, v) => setValues(s => ({ ...s, [k]: v }))
   const activeField = fields.find(f => f.key === active)
   const handleApply = () => { onApply && onApply(); onClose() }
   const handleReset = () => {
     setValues({
-      name: '', code: '', internalCode: '', groupFilter: '', customerFilter: '',
+      code: '', internalCode: '', groupFilter: '', customerFilter: '',
       platform: '', creator: '', industry: '', sales: '', status: '',
-      createdStart: '', createdEnd: '',
     })
   }
   return (
@@ -981,15 +1000,7 @@ function ProjectAdvancedFilter({ values, setValues, platforms, creators, industr
                 ))}
               </div>
             )}
-            {activeField?.kind === 'daterange' && (
-              <div className="flex items-center gap-2">
-                <input type="date" value={values.createdStart || ''} onChange={e => set('createdStart', e.target.value)}
-                  className="flex-1 h-9 px-3 bg-ink-50 rounded text-[12px] text-ink-900 focus:outline-none focus:ring-1 focus:ring-brand"/>
-                <span className="text-ink-400 text-[12px]">~</span>
-                <input type="date" value={values.createdEnd || ''} onChange={e => set('createdEnd', e.target.value)}
-                  className="flex-1 h-9 px-3 bg-ink-50 rounded text-[12px] text-ink-900 focus:outline-none focus:ring-1 focus:ring-brand"/>
-              </div>
-            )}
+            {/* (daterange 已移除：行内 DateRangePicker 替代) */}
           </div>
         </div>
         <div className="flex-none flex border-t border-ink-100 px-3 py-3 gap-3 bg-white">
@@ -1100,7 +1111,6 @@ function SubjectAdvancedFilter({ values, setValues, industries, statuses, groupO
     { key: 'status', label: '生效状态', kind: 'select', options: statuses },
     { key: 'groupName', label: '集团名称', kind: 'select', options: groupOptions },
     { key: 'sales', label: '销售', kind: 'input' },
-    { key: 'createdRange', label: '创建日期', kind: 'daterange' },
   ]
   const [active, setActive] = useState('industry')
   const set = (k, v) => setValues(s => ({ ...s, [k]: v }))
@@ -1110,7 +1120,6 @@ function SubjectAdvancedFilter({ values, setValues, industries, statuses, groupO
     setValues({
       customerCode: '', bankAccount: '', phone: '', creditCode: '',
       tag: '', accountType: '', industry: '', status: '', groupName: '', sales: '',
-      createdStart: '', createdEnd: '',
     })
   }
 
@@ -1165,15 +1174,7 @@ function SubjectAdvancedFilter({ values, setValues, industries, statuses, groupO
                 ))}
               </div>
             )}
-            {activeField?.kind === 'daterange' && (
-              <div className="flex items-center gap-2">
-                <input type="date" value={values.createdStart || ''} onChange={e => set('createdStart', e.target.value)}
-                  className="flex-1 h-9 px-3 bg-ink-50 rounded text-[12px] text-ink-900 focus:outline-none focus:ring-1 focus:ring-brand"/>
-                <span className="text-ink-400 text-[12px]">~</span>
-                <input type="date" value={values.createdEnd || ''} onChange={e => set('createdEnd', e.target.value)}
-                  className="flex-1 h-9 px-3 bg-ink-50 rounded text-[12px] text-ink-900 focus:outline-none focus:ring-1 focus:ring-brand"/>
-              </div>
-            )}
+            {/* (daterange 已移除：行内 DateRangePicker 替代) */}
           </div>
         </div>
 
