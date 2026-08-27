@@ -3948,7 +3948,7 @@ function PolicyChangeSheet({ item, onClose }) {
   return (
     <>
       <div className="fixed inset-0 bg-black/40 z-50" onClick={onClose}/>
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl px-4 pt-3 pb-6 animate-[slideUp_0.25s_ease-out]">
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl px-4 pt-3 pb-20 animate-[slideUp_0.25s_ease-out]">
         <div className="w-10 h-1 bg-ink-200 rounded-full mx-auto mb-3"/>
         <div className="text-[16px] font-medium text-ink-900 mb-3">政策变更</div>
         <div className="space-y-3">
