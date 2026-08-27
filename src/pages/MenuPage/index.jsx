@@ -6466,9 +6466,17 @@ function OperationListSection({ node }) {
                     <span className="truncate">运营：{row.operator}</span>
                     <span className="font-mono text-[10px] tabular-nums shrink-0">ID:{row.advId.slice(-6)}</span>
                   </div>
-                  <div className="text-[15px] font-semibold text-brand tabular-nums shrink-0">
-                    {Number(row.nonGiftConsumption).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    <span className="ml-0.5 text-[10px] text-ink-400 font-normal">元</span>
+                  <div className="shrink-0 text-right space-y-0.5">
+                    <div className="text-[14px] font-semibold text-brand tabular-nums leading-tight">
+                      {Number(row.nonGiftConsumption).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      <span className="ml-0.5 text-[10px] text-ink-400 font-normal">元</span>
+                    </div>
+                    <div className="text-[10px] text-ink-400 tabular-nums leading-tight">
+                      赠款 {Number(row.giftConsumption).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                    <div className="text-[10px] text-ink-700 tabular-nums leading-tight">
+                      总消耗 {Number(row.totalConsumption).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
                   </div>
                 </div>
               </div>
