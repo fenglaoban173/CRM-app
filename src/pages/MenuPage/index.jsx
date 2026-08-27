@@ -292,56 +292,161 @@ function Cell({ field, value }) {
   return <FieldCell field={field} value={value}/>
 }
 
-// ============ 集团列表（卡片式 + 钉钉式查询条件）============
+// ============ 集团列表 - 高级筛选 Sheet ============
+function GroupAdvancedFilter({ values, setValues, groupTypeOptions, attrOptions, tagOptions, salesOptions, onClose, onApply }) {
+  const fields = [
+    { key: 'name',      label: '集团名称', kind: 'input' },
+    { key: 'creator',   label: '创建人',   kind: 'input' },
+    { key: 'sales',     label: '销售',     kind: 'select', options: salesOptions },
+    { key: 'groupType', label: '集团类型', kind: 'select', options: groupTypeOptions },
+    { key: 'attr',      label: '集团属性', kind: 'select', options: attrOptions },
+    { key: 'tag',       label: '标签',     kind: 'select', options: tagOptions },
+    { key: 'createdRange', label: '创建日期', kind: 'daterange' },
+  ]
+  const [active, setActive] = useState('name')
+  const set = (k, v) => setValues(s => ({ ...s, [k]: v }))
+  const activeField = fields.find(f => f.key === active)
+  const handleApply = () => { onApply && onApply(); onClose() }
+  const handleReset = () => {
+    setValues({
+      name: '', creator: '', sales: '', groupType: '', attr: '', tag: '',
+      createdStart: '', createdEnd: '',
+    })
+  }
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/40 flex items-end" onClick={onClose}>
+      <div className="w-full bg-white rounded-t-2xl h-[80vh] flex flex-col relative" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-ink-100">
+          <h2 className="text-[15px] font-medium text-ink-900">高级筛选</h2>
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center tap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M6 6l12 12M18 6L6 18" stroke="#999" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <div className="flex flex-1 min-h-0">
+          <div className="w-[100px] bg-ink-50 overflow-y-auto">
+            {fields.map(f => (
+              <button key={f.key} onClick={() => setActive(f.key)}
+                className={`w-full px-3 py-3 text-left text-[12px] tap border-l-2 ${
+                  active === f.key ? 'bg-white text-brand border-brand font-medium' : 'text-ink-700 border-transparent'
+                }`}>{f.label}</button>
+            ))}
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">
+            {activeField?.kind === 'input' && (
+              <input value={values[active] || ''} onChange={e => set(active, e.target.value)}
+                placeholder={`请输入${activeField.label}`}
+                className="w-full h-9 px-3 bg-ink-50 rounded text-[13px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-1 focus:ring-brand"/>
+            )}
+            {activeField?.kind === 'select' && (
+              <div className="space-y-2">
+                <label onClick={() => set(active, '')} className="flex items-center gap-2 px-2 py-2 rounded tap cursor-pointer">
+                  <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${!values[active] ? 'border-brand' : 'border-ink-200'}`}>
+                    {!values[active] && <span className="w-2 h-2 rounded-full bg-brand"/>}
+                  </span>
+                  <span className="text-[13px] text-ink-900">全部</span>
+                </label>
+                {activeField.options.map(opt => (
+                  <label key={opt} onClick={() => set(active, opt)} className="flex items-center gap-2 px-2 py-2 rounded tap cursor-pointer">
+                    <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${values[active] === opt ? 'border-brand' : 'border-ink-200'}`}>
+                      {values[active] === opt && <span className="w-2 h-2 rounded-full bg-brand"/>}
+                    </span>
+                    <span className="text-[13px] text-ink-900">{opt}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+            {activeField?.kind === 'daterange' && (
+              <div className="flex items-center gap-2">
+                <input type="date" value={values.createdStart || ''} onChange={e => set('createdStart', e.target.value)}
+                  className="flex-1 h-9 px-3 bg-ink-50 rounded text-[12px] text-ink-900 focus:outline-none focus:ring-1 focus:ring-brand"/>
+                <span className="text-ink-400 text-[12px]">~</span>
+                <input type="date" value={values.createdEnd || ''} onChange={e => set('createdEnd', e.target.value)}
+                  className="flex-1 h-9 px-3 bg-ink-50 rounded text-[12px] text-ink-900 focus:outline-none focus:ring-1 focus:ring-brand"/>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="flex-none flex border-t border-ink-100 px-3 py-3 gap-3 bg-white">
+          <button onClick={handleReset} className="flex-1 h-11 bg-white border border-ink-200 rounded-full text-[14px] text-ink-700 active:bg-ink-50 tap">重 置</button>
+          <button onClick={handleApply} className="flex-1 h-11 bg-brand text-white rounded-full text-[14px] active:opacity-90 tap">确 认</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ============ 集团列表（钉钉式：日期 + 漏斗 + 卡片列表 + 分页）============
 function GroupListSection({ node }) {
   const data = node.data || []
-  const PAGE_SIZE = 15
-  const total = data.length
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const fields = node.fields || []
+  const PAGE_SIZE = 15
+  const nav = useNavigate()
+
+  // 钉钉式：行内日期 + 漏斗
+  const [dateRange, setDateRange] = useState({ start: '', end: '' })
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [advanced, setAdvanced] = useState({
+    name: '', creator: '', sales: '', groupType: '', attr: '', tag: '',
+    createdStart: '', createdEnd: '',
+  })
+  const [page, setPage] = useState(1)
+
+  // 派生 select 选项
+  const groupTypeOptions = Array.from(new Set(data.map(d => d.groupType).filter(Boolean)))
+  const attrOptions      = Array.from(new Set(data.map(d => d.attr).filter(Boolean)))
+  const tagOptions       = Array.from(new Set(data.map(d => d.tag).filter(Boolean)))
+  const salesOptions     = Array.from(new Set(data.map(d => d.sales).filter(Boolean)))
+
+  const handleDateChange = ({ start, end }) => {
+    setDateRange({ start, end })
+    setAdvanced(a => ({ ...a, createdStart: start, createdEnd: end }))
+  }
+  const handleSheetApply = () => {
+    setDateRange({ start: advanced.createdStart || '', end: advanced.createdEnd || '' })
+    setFilterOpen(false)
+  }
+
+  const otherAdvancedCount = Object.entries(advanced).filter(([k, v]) => v && k !== 'createdStart' && k !== 'createdEnd').length
+  const activeAdvancedCount = (dateRange.start || dateRange.end ? 1 : 0) + otherAdvancedCount
+
+  // 过滤
+  const filtered = data.filter(g => {
+    if (advanced.name      && !g.name?.includes(advanced.name))     return false
+    if (advanced.creator   && !g.creator?.includes(advanced.creator)) return false
+    if (advanced.sales     && g.sales !== advanced.sales)           return false
+    if (advanced.groupType && g.groupType !== advanced.groupType)   return false
+    if (advanced.attr      && g.attr !== advanced.attr)             return false
+    if (advanced.tag       && g.tag !== advanced.tag)               return false
+    if (advanced.createdStart && g.created && g.created < advanced.createdStart) return false
+    if (advanced.createdEnd   && g.created && g.created > advanced.createdEnd)   return false
+    return true
+  })
+  const total = filtered.length
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  const safePage = Math.min(page, totalPages)
+  const paged = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+
+  useEffect(() => { setPage(1) }, [advanced, dateRange])
 
   return (
     <>
-      {/* 钉钉式查询条件条：字段+输入 + 新建按钮 */}
-      <div className="px-3 pt-3">
-        <div className="card overflow-hidden">
-          {/* 第一行：字段切换 + 输入 */}
-          <div className="flex items-center gap-2 px-3 py-3">
-            <button className="h-9 w-[88px] px-3 bg-ink-50 rounded-full text-[12px] text-ink-700 flex items-center justify-between gap-1 tap shrink-0">
-              <span>集团名称</span>
-              <span className="text-ink-400">▾</span>
-            </button>
-            <div className="flex-1 bg-ink-50 rounded-full h-9 flex items-center px-4 text-[12px] text-ink-400">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="mr-2">
-                <circle cx="11" cy="11" r="7" stroke="#999" strokeWidth="2"/>
-                <path d="M16 16l4 4" stroke="#999" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-              集团名称
-            </div>
-            <button className="w-9 h-9 flex items-center justify-center tap shrink-0">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <circle cx="11" cy="11" r="7" stroke="#2D7FF9" strokeWidth="2"/>
-                <path d="M16 16l4 4" stroke="#2D7FF9" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-            </button>
-          </div>
-
-          {/* 第二行：创建人字段 + 输入（无右侧搜索 icon，用占位保持对齐） */}
-          <div className="flex items-center gap-2 px-3 pb-3">
-            <button className="h-9 w-[88px] px-3 bg-ink-50 rounded-full text-[12px] text-ink-700 flex items-center justify-between gap-1 tap shrink-0">
-              <span>创建人</span>
-              <span className="text-ink-400">▾</span>
-            </button>
-            <div className="flex-1 bg-ink-50 rounded-full h-9 flex items-center px-4 text-[12px] text-ink-400">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="mr-2">
-                <circle cx="11" cy="11" r="7" stroke="#999" strokeWidth="2"/>
-                <path d="M16 16l4 4" stroke="#999" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-              创建人
-            </div>
-            {/* 占位：保持与第一行搜索框对齐 */}
-            <div className="w-9 h-9 shrink-0"/>
-          </div>
+      {/* 钉钉式查询条件卡（单行：日期 + 漏斗） */}
+      <div className="card mx-3 mt-3 overflow-hidden">
+        <div className="flex items-center gap-2 px-3 py-2.5">
+          <span className="text-[11px] text-ink-500 shrink-0">创建日期</span>
+          <DateRangePicker value={dateRange} onChange={handleDateChange}/>
+          <div className="flex-1"/>
+          <button onClick={() => setFilterOpen(true)}
+            className="w-9 h-9 bg-ink-50 rounded-full flex items-center justify-center tap relative shrink-0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M3 5h18l-7 9v6l-4-2v-4L3 5z" stroke="#666" strokeWidth="1.8" strokeLinejoin="round"/>
+            </svg>
+            {activeAdvancedCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-brand text-white text-[10px] rounded-full flex items-center justify-center">{activeAdvancedCount}</span>
+            )}
+          </button>
         </div>
       </div>
 
@@ -352,42 +457,70 @@ function GroupListSection({ node }) {
 
       {/* 卡片列表 */}
       <div className="px-3 pt-2 space-y-2">
-        {data.map((g) => (
+        {paged.map((g) => (
           <GroupCard key={g.id} group={g} fields={fields}/>
         ))}
+        {total === 0 && (
+          <div className="py-8 text-center text-ink-400 text-[13px] card">无匹配集团</div>
+        )}
       </div>
 
       {/* 分页 */}
-      <div className="px-3 pt-4 pb-2 flex items-center justify-center gap-2 text-[12px] text-ink-700">
-        <button className="w-8 h-8 rounded-full bg-white border border-ink-200 flex items-center justify-center tap">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <path d="M15 6l-6 6 6 6" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-        <button className="w-8 h-8 rounded-full bg-brand text-white flex items-center justify-center">1</button>
-        <button className="w-8 h-8 rounded-full bg-white border border-ink-200 flex items-center justify-center tap">2</button>
-        <button className="w-8 h-8 rounded-full bg-white border border-ink-200 flex items-center justify-center tap">3</button>
-        <button className="w-8 h-8 rounded-full bg-white border border-ink-200 flex items-center justify-center tap">4</button>
-        <button className="w-8 h-8 rounded-full bg-white border border-ink-200 flex items-center justify-center tap">5</button>
-        <span className="text-ink-400 px-1">...</span>
-        <button className="w-8 h-8 rounded-full bg-white border border-ink-200 flex items-center justify-center tap">{totalPages}</button>
-        <button className="w-8 h-8 rounded-full bg-white border border-ink-200 flex items-center justify-center tap">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <path d="M9 6l6 6-6 6" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-      </div>
-      <div className="px-3 pb-3 flex items-center justify-center gap-2 text-[11px] text-ink-500">
-        <span>{PAGE_SIZE}条/页</span>
-        <span className="text-ink-300">|</span>
-        <span>共 {total} 条</span>
-        <span className="text-ink-300">|</span>
-        <span className="flex items-center gap-1">
-          前往
-          <input className="w-8 h-6 border border-ink-200 rounded text-center text-[11px]" defaultValue="1"/>
-          页
-        </span>
-      </div>
+      {total > 0 && (
+        <>
+          <div className="px-3 pt-4 pb-2 flex items-center justify-center gap-2 text-[12px] text-ink-700">
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1}
+              className="w-8 h-8 rounded-full bg-white border border-ink-200 flex items-center justify-center tap disabled:opacity-40">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M15 6l-6 6 6 6" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+              const start = Math.max(1, safePage - 2)
+              const p = start + i
+              if (p > totalPages) return null
+              return (
+                <button key={p} onClick={() => setPage(p)}
+                  className={`w-8 h-8 rounded-full text-[12px] tap ${p === safePage ? 'bg-brand text-white' : 'bg-white border border-ink-200 text-ink-700'}`}>{p}</button>
+              )
+            })}
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages}
+              className="w-8 h-8 rounded-full bg-white border border-ink-200 flex items-center justify-center tap disabled:opacity-40">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M9 6l6 6-6 6" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </div>
+          <div className="px-3 pb-3 flex items-center justify-center gap-2 text-[11px] text-ink-500">
+            <span>{PAGE_SIZE}条/页</span>
+            <span className="text-ink-300">|</span>
+            <span>共 {total} 条</span>
+          </div>
+        </>
+      )}
+
+      {/* 高级筛选 Sheet */}
+      {filterOpen && (
+        <GroupAdvancedFilter
+          values={advanced}
+          setValues={setAdvanced}
+          groupTypeOptions={groupTypeOptions}
+          attrOptions={attrOptions}
+          tagOptions={tagOptions}
+          salesOptions={salesOptions}
+          onApply={handleSheetApply}
+          onClose={() => setFilterOpen(false)}
+        />
+      )}
+
+      {/* FAB：新建集团 */}
+      <button onClick={() => nav('/group/create')}
+        className="fixed right-4 bottom-20 z-40 h-14 px-5 bg-brand text-white rounded-full shadow-lg flex items-center gap-1.5 tap active:scale-95 transition-transform">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M12 5v14M5 12h14" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
+        </svg>
+        <span className="text-[13px] font-medium">新建集团</span>
+      </button>
     </>
   )
 }
@@ -805,10 +938,32 @@ function ProjectPagination({ total, page, pageSize, totalPages, onChange }) {
   )
 }
 
-// ============ 项目高级筛选弹窗 ============
+// ============ 项目高级筛选弹窗（钉钉式左字段 + 右条件）============
 function ProjectAdvancedFilter({ values, setValues, platforms, creators, industries, sales, statuses, groupOptions, customerOptions, onReset, onClose, onApply }) {
+  const fields = [
+    { key: 'name',          label: '项目名称',     kind: 'input' },
+    { key: 'code',          label: '项目编号',     kind: 'input' },
+    { key: 'internalCode',  label: '内部自动编码', kind: 'input' },
+    { key: 'groupFilter',   label: '集团名称',     kind: 'select', options: groupOptions },
+    { key: 'customerFilter',label: '客户主体',     kind: 'select', options: customerOptions },
+    { key: 'platform',      label: '媒体平台',     kind: 'select', options: platforms },
+    { key: 'creator',       label: '创建人',       kind: 'select', options: creators },
+    { key: 'industry',      label: '客户所属行业', kind: 'select', options: industries },
+    { key: 'sales',         label: '销售人员',     kind: 'select', options: sales },
+    { key: 'status',        label: '审批状态',     kind: 'select', options: statuses },
+    { key: 'createdRange',  label: '创建日期',     kind: 'daterange' },
+  ]
+  const [active, setActive] = useState('name')
   const set = (k, v) => setValues(s => ({ ...s, [k]: v }))
+  const activeField = fields.find(f => f.key === active)
   const handleApply = () => { onApply && onApply(); onClose() }
+  const handleReset = () => {
+    setValues({
+      name: '', code: '', internalCode: '', groupFilter: '', customerFilter: '',
+      platform: '', creator: '', industry: '', sales: '', status: '',
+      createdStart: '', createdEnd: '',
+    })
+  }
   return (
     <div className="fixed inset-0 z-[60] bg-black/40 flex items-end" onClick={onClose}>
       <div className="w-full bg-white rounded-t-2xl h-[80vh] flex flex-col relative" onClick={e => e.stopPropagation()}>
@@ -820,55 +975,52 @@ function ProjectAdvancedFilter({ values, setValues, platforms, creators, industr
             </svg>
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          <FilterField label="项目名称">
-            <input value={values.name || ''} onChange={e => set('name', e.target.value)}
-              placeholder="请输入项目名称"
-              className="w-full h-9 px-3 bg-ink-50 rounded text-[13px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-1 focus:ring-brand"/>
-          </FilterField>
-          <FilterField label="项目编号">
-            <input value={values.code || ''} onChange={e => set('code', e.target.value)}
-              placeholder="请输入项目编号"
-              className="w-full h-9 px-3 bg-ink-50 rounded text-[13px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-1 focus:ring-brand"/>
-          </FilterField>
-          <FilterField label="内部自动编码">
-            <input value={values.internalCode || ''} onChange={e => set('internalCode', e.target.value)}
-              placeholder="请输入内部自动编码"
-              className="w-full h-9 px-3 bg-ink-50 rounded text-[13px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-1 focus:ring-brand"/>
-          </FilterField>
-          <FilterField label="集团名称">
-            <ChipRow options={groupOptions} value={values.groupFilter} onChange={v => set('groupFilter', v)}/>
-          </FilterField>
-          <FilterField label="客户主体">
-            <ChipRow options={customerOptions} value={values.customerFilter} onChange={v => set('customerFilter', v)}/>
-          </FilterField>
-          <FilterField label="媒体平台">
-            <ChipRow options={platforms} value={values.platform} onChange={v => set('platform', v)}/>
-          </FilterField>
-          <FilterField label="创建人">
-            <ChipRow options={creators} value={values.creator} onChange={v => set('creator', v)}/>
-          </FilterField>
-          <FilterField label="客户所属行业">
-            <ChipRow options={industries} value={values.industry} onChange={v => set('industry', v)}/>
-          </FilterField>
-          <FilterField label="销售人员">
-            <ChipRow options={sales} value={values.sales} onChange={v => set('sales', v)}/>
-          </FilterField>
-          <FilterField label="审批状态">
-            <ChipRow options={statuses} value={values.status} onChange={v => set('status', v)}/>
-          </FilterField>
-          <FilterField label="创建日期">
-            <div className="flex items-center gap-2">
-              <input type="date" value={values.createdStart || ''} onChange={e => set('createdStart', e.target.value)}
-                className="flex-1 h-9 px-3 bg-ink-50 rounded text-[12px] text-ink-900 focus:outline-none focus:ring-1 focus:ring-brand"/>
-              <span className="text-ink-400 text-[12px]">~</span>
-              <input type="date" value={values.createdEnd || ''} onChange={e => set('createdEnd', e.target.value)}
-                className="flex-1 h-9 px-3 bg-ink-50 rounded text-[12px] text-ink-900 focus:outline-none focus:ring-1 focus:ring-brand"/>
-            </div>
-          </FilterField>
+        <div className="flex flex-1 min-h-0">
+          <div className="w-[100px] bg-ink-50 overflow-y-auto scrollbar-hide">
+            {fields.map(f => (
+              <button key={f.key} onClick={() => setActive(f.key)}
+                className={`w-full px-3 py-3 text-left text-[12px] tap border-l-2 ${
+                  active === f.key ? 'bg-white text-brand border-brand font-medium' : 'text-ink-700 border-transparent'
+                }`}>{f.label}</button>
+            ))}
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">
+            {activeField?.kind === 'input' && (
+              <input value={values[active] || ''} onChange={e => set(active, e.target.value)}
+                placeholder={`请输入${activeField.label}`}
+                className="w-full h-9 px-3 bg-ink-50 rounded text-[13px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-1 focus:ring-brand"/>
+            )}
+            {activeField?.kind === 'select' && (
+              <div className="space-y-2">
+                <label onClick={() => set(active, '')} className="flex items-center gap-2 px-2 py-2 rounded tap cursor-pointer">
+                  <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${!values[active] ? 'border-brand' : 'border-ink-200'}`}>
+                    {!values[active] && <span className="w-2 h-2 rounded-full bg-brand"/>}
+                  </span>
+                  <span className="text-[13px] text-ink-900">全部</span>
+                </label>
+                {activeField.options.map(opt => (
+                  <label key={opt} onClick={() => set(active, opt)} className="flex items-center gap-2 px-2 py-2 rounded tap cursor-pointer">
+                    <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${values[active] === opt ? 'border-brand' : 'border-ink-200'}`}>
+                      {values[active] === opt && <span className="w-2 h-2 rounded-full bg-brand"/>}
+                    </span>
+                    <span className="text-[13px] text-ink-900">{opt}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+            {activeField?.kind === 'daterange' && (
+              <div className="flex items-center gap-2">
+                <input type="date" value={values.createdStart || ''} onChange={e => set('createdStart', e.target.value)}
+                  className="flex-1 h-9 px-3 bg-ink-50 rounded text-[12px] text-ink-900 focus:outline-none focus:ring-1 focus:ring-brand"/>
+                <span className="text-ink-400 text-[12px]">~</span>
+                <input type="date" value={values.createdEnd || ''} onChange={e => set('createdEnd', e.target.value)}
+                  className="flex-1 h-9 px-3 bg-ink-50 rounded text-[12px] text-ink-900 focus:outline-none focus:ring-1 focus:ring-brand"/>
+              </div>
+            )}
+          </div>
         </div>
         <div className="flex-none flex border-t border-ink-100 px-3 py-3 gap-3 bg-white">
-          <button onClick={onReset} className="flex-1 h-11 bg-white border border-ink-200 rounded-full text-[14px] text-ink-700 active:bg-ink-50 tap">重置筛选</button>
+          <button onClick={handleReset} className="flex-1 h-11 bg-white border border-ink-200 rounded-full text-[14px] text-ink-700 active:bg-ink-50 tap">重置筛选</button>
           <button onClick={handleApply} className="flex-1 h-11 bg-brand text-white rounded-full text-[14px] active:opacity-90 tap">确 定</button>
         </div>
       </div>
@@ -2370,70 +2522,163 @@ function AdvertiserTaskListSection({ node }) {
   return <AdvertiserTaskListSectionInner node={node}/>
 }
 
-// 任务列表 - 3 个固定查询字段：被复制账户ID / 任务状态 / 任务类型
+// 任务列表 - 高级筛选 Sheet
+function AdvertiserTaskAdvancedFilter({ values, setValues, statusOptions, typeOptions, groupOptions, onClose, onApply }) {
+  const fields = [
+    { key: 'copyAdvIdQuery', label: '被复制账户ID', kind: 'input' },
+    { key: 'groupName',      label: '集团',          kind: 'select', options: groupOptions },
+    { key: 'status',         label: '任务状态',      kind: 'select', options: statusOptions },
+    { key: 'type',           label: '任务类型',      kind: 'select', options: typeOptions },
+    { key: 'createdRange',   label: '创建时间',      kind: 'daterange' },
+  ]
+  const [active, setActive] = useState('copyAdvIdQuery')
+  const set = (k, v) => setValues(s => ({ ...s, [k]: v }))
+  const activeField = fields.find(f => f.key === active)
+  const handleApply = () => { onApply && onApply(); onClose() }
+  const handleReset = () => {
+    setValues({
+      copyAdvIdQuery: '', groupName: '', status: '', type: '',
+      createdStart: '', createdEnd: '',
+    })
+  }
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/40 flex items-end" onClick={onClose}>
+      <div className="w-full bg-white rounded-t-2xl h-[80vh] flex flex-col relative" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-ink-100">
+          <h2 className="text-[15px] font-medium text-ink-900">高级筛选</h2>
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center tap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M6 6l12 12M18 6L6 18" stroke="#999" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <div className="flex flex-1 min-h-0">
+          <div className="w-[100px] bg-ink-50 overflow-y-auto">
+            {fields.map(f => (
+              <button key={f.key} onClick={() => setActive(f.key)}
+                className={`w-full px-3 py-3 text-left text-[12px] tap border-l-2 ${
+                  active === f.key ? 'bg-white text-brand border-brand font-medium' : 'text-ink-700 border-transparent'
+                }`}>{f.label}</button>
+            ))}
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">
+            {activeField?.kind === 'input' && (
+              <input value={values[active] || ''} onChange={e => set(active, e.target.value)}
+                placeholder={`请输入${activeField.label}`}
+                className="w-full h-9 px-3 bg-ink-50 rounded text-[13px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-1 focus:ring-brand"/>
+            )}
+            {activeField?.kind === 'select' && (
+              <div className="space-y-2">
+                <label onClick={() => set(active, '')} className="flex items-center gap-2 px-2 py-2 rounded tap cursor-pointer">
+                  <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${!values[active] ? 'border-brand' : 'border-ink-200'}`}>
+                    {!values[active] && <span className="w-2 h-2 rounded-full bg-brand"/>}
+                  </span>
+                  <span className="text-[13px] text-ink-900">全部</span>
+                </label>
+                {activeField.options.map(opt => (
+                  <label key={opt} onClick={() => set(active, opt)} className="flex items-center gap-2 px-2 py-2 rounded tap cursor-pointer">
+                    <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${values[active] === opt ? 'border-brand' : 'border-ink-200'}`}>
+                      {values[active] === opt && <span className="w-2 h-2 rounded-full bg-brand"/>}
+                    </span>
+                    <span className="text-[13px] text-ink-900">{opt}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+            {activeField?.kind === 'daterange' && (
+              <div className="flex items-center gap-2">
+                <input type="date" value={values.createdStart || ''} onChange={e => set('createdStart', e.target.value)}
+                  className="flex-1 h-9 px-3 bg-ink-50 rounded text-[12px] text-ink-900 focus:outline-none focus:ring-1 focus:ring-brand"/>
+                <span className="text-ink-400 text-[12px]">~</span>
+                <input type="date" value={values.createdEnd || ''} onChange={e => set('createdEnd', e.target.value)}
+                  className="flex-1 h-9 px-3 bg-ink-50 rounded text-[12px] text-ink-900 focus:outline-none focus:ring-1 focus:ring-brand"/>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="flex-none flex border-t border-ink-100 px-3 py-3 gap-3 bg-white">
+          <button onClick={handleReset} className="flex-1 h-11 bg-white border border-ink-200 rounded-full text-[14px] text-ink-700 active:bg-ink-50 tap">重 置</button>
+          <button onClick={handleApply} className="flex-1 h-11 bg-brand text-white rounded-full text-[14px] active:opacity-90 tap">确 认</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// 任务列表 - 钉钉式：日期 + 漏斗 + 卡片 + 分页
 function AdvertiserTaskListSectionInner({ node }) {
   const data = node.data || []
   const fields = node.fields || []
   const PAGE_SIZE = 15
-  const total = data.length
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const nav = useNavigate()
 
-  const [copyAdvIdQuery, setCopyAdvIdQuery] = useState('')
-  const [status, setStatus] = useState('')
-  const [type, setType] = useState('')
+  // 钉钉式：行内日期 + 漏斗
+  const [dateRange, setDateRange] = useState({ start: '', end: '' })
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [advanced, setAdvanced] = useState({
+    copyAdvIdQuery: '', groupName: '', status: '', type: '',
+    createdStart: '', createdEnd: '',
+  })
+  const [page, setPage] = useState(1)
 
   // 任务状态 / 任务类型 为枚举，不从数据派生
   const STATUS_OPTIONS = ['处理中', '已完成', '已失败']
   const TYPE_OPTIONS = ['批量导入', '复制账户', '手动录入', '多开户导入']
+  const GROUP_OPTIONS = Array.from(new Set(data.map(d => d.groupName).filter(Boolean)))
 
+  const handleDateChange = ({ start, end }) => {
+    setDateRange({ start, end })
+    setAdvanced(a => ({ ...a, createdStart: start, createdEnd: end }))
+  }
+  const handleSheetApply = () => {
+    setDateRange({ start: advanced.createdStart || '', end: advanced.createdEnd || '' })
+    setFilterOpen(false)
+  }
+
+  const otherAdvancedCount = Object.entries(advanced).filter(([k, v]) => v && k !== 'createdStart' && k !== 'createdEnd').length
+  const activeAdvancedCount = (dateRange.start || dateRange.end ? 1 : 0) + otherAdvancedCount
+
+  // 过滤
   const filteredData = data.filter(item => {
-    if (copyAdvIdQuery && !String(item.copyAdvId || '').toLowerCase().includes(copyAdvIdQuery.toLowerCase())) return false
-    if (status && item.status !== status) return false
-    if (type && item.type !== type) return false
+    if (advanced.copyAdvIdQuery && !String(item.copyAdvId || '').toLowerCase().includes(advanced.copyAdvIdQuery.toLowerCase())) return false
+    if (advanced.groupName && item.groupName !== advanced.groupName) return false
+    if (advanced.status && item.status !== advanced.status) return false
+    if (advanced.type && item.type !== advanced.type) return false
+    if (advanced.createdStart && item.created && item.created < advanced.createdStart) return false
+    if (advanced.createdEnd   && item.created && item.created > advanced.createdEnd)   return false
     return true
   })
 
-  const handleReset = () => {
-    setCopyAdvIdQuery(''); setStatus(''); setType('')
-  }
+  const total = filteredData.length
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  const safePage = Math.min(page, totalPages)
+  const pagedData = filteredData.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
-  const hasAnyFilter = Boolean(copyAdvIdQuery || status || type)
+  useEffect(() => { setPage(1) }, [advanced, dateRange])
 
   return (
     <>
-      {/* 钉钉式查询条件 - 3 个固定字段 */}
-      <div className="px-3 pt-3 relative">
-        <div className="card divide-y divide-ink-100">
-          {/* Row 1: 被复制账户ID 输入框 */}
-          <div className="flex items-center gap-2 px-3 py-2.5">
-            <span className="text-[12px] text-ink-700 shrink-0 w-[88px] whitespace-nowrap">被复制账户ID：</span>
-            <div className="flex-1 bg-ink-50 rounded-full h-9 flex items-center px-4 text-[12px]">
-              <input value={copyAdvIdQuery} onChange={e => setCopyAdvIdQuery(e.target.value)}
-                placeholder="请输入账户ID"
-                className="flex-1 bg-transparent text-ink-900 placeholder:text-ink-400 focus:outline-none"/>
-            </div>
-          </div>
-          {/* Row 2: 任务状态 下拉 */}
-          <div className="flex items-center gap-2 px-3 py-2.5">
-            <span className="text-[12px] text-ink-700 shrink-0 w-[88px] whitespace-nowrap">任务状态：</span>
-            <div className="flex-1 relative z-30">
-              <ChipSelect value={status} onChange={setStatus} placeholder="请选择" options={STATUS_OPTIONS}/>
-            </div>
-          </div>
-          {/* Row 3: 任务类型 下拉 */}
-          <div className="flex items-center gap-2 px-3 py-2.5">
-            <span className="text-[12px] text-ink-700 shrink-0 w-[88px] whitespace-nowrap">任务类型：</span>
-            <div className="flex-1 relative z-20">
-              <ChipSelect value={type} onChange={setType} placeholder="请选择" options={TYPE_OPTIONS}/>
-            </div>
-          </div>
+      {/* 钉钉式查询条件卡（行 1：日期 + 漏斗） */}
+      <div className="card mx-3 mt-3 overflow-hidden">
+        <div className="flex items-center gap-2 px-3 py-2.5">
+          <span className="text-[11px] text-ink-500 shrink-0">创建时间</span>
+          <DateRangePicker value={dateRange} onChange={handleDateChange}/>
+          <div className="flex-1"/>
+          <button onClick={() => setFilterOpen(true)}
+            className="w-9 h-9 bg-ink-50 rounded-full flex items-center justify-center tap relative shrink-0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M3 5h18l-7 9v6l-4-2v-4L3 5z" stroke="#666" strokeWidth="1.8" strokeLinejoin="round"/>
+            </svg>
+            {activeAdvancedCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-brand text-white text-[10px] rounded-full flex items-center justify-center">{activeAdvancedCount}</span>
+            )}
+          </button>
         </div>
       </div>
 
       {/* 共 N 条 + 顶部右侧操作 */}
       <div className="px-3 pt-3 flex items-center justify-between">
-        <span className="text-[11px] text-ink-500">共 {filteredData.length} 条</span>
+        <span className="text-[11px] text-ink-500">共 {total} 条</span>
         <button onClick={() => showToast('已发起导出', 'success')}
           className="h-7 px-3 bg-brand text-white rounded text-[11px] flex items-center gap-1 tap active:opacity-90 whitespace-nowrap shrink-0">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
@@ -2445,7 +2690,10 @@ function AdvertiserTaskListSectionInner({ node }) {
 
       {/* 卡片列表 */}
       <div className="px-3 pt-2 space-y-2">
-        {filteredData.map((item, i) => (
+        {pagedData.length === 0 && (
+          <div className="py-8 text-center text-ink-400 text-[13px] card">无匹配任务</div>
+        )}
+        {pagedData.map((item, i) => (
           <AdvertiserTaskCard
             key={item.id || i}
             item={item}
@@ -2459,30 +2707,46 @@ function AdvertiserTaskListSectionInner({ node }) {
       </div>
 
       {/* 分页 */}
-      <div className="px-3 pt-4 pb-2 flex items-center justify-center gap-2 text-[12px] text-ink-700">
-        <button className="w-8 h-8 rounded-full bg-white border border-ink-200 flex items-center justify-center tap">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="#999" strokeWidth="2" strokeLinecap="round"/></svg>
-        </button>
-        <button className="w-8 h-8 rounded-full bg-brand text-white flex items-center justify-center font-medium">1</button>
-        <button className="w-8 h-8 rounded-full bg-white border border-ink-200 flex items-center justify-center tap">2</button>
-        <span className="text-ink-400 px-1">...</span>
-        <button className="w-8 h-8 rounded-full bg-white border border-ink-200 flex items-center justify-center tap">{totalPages}</button>
-        <button className="w-8 h-8 rounded-full bg-white border border-ink-200 flex items-center justify-center tap">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="#999" strokeWidth="2" strokeLinecap="round"/></svg>
-        </button>
-      </div>
-      <div className="px-3 pb-3 flex items-center justify-center gap-2 text-[11px] text-ink-500">
-        <span>{PAGE_SIZE}条/页</span>
-        <span className="text-ink-300">|</span>
-        <span>共 {total} 条</span>
-      </div>
+      {total > 0 && (
+        <>
+          <div className="px-3 pt-4 pb-2 flex items-center justify-center gap-2 text-[12px] text-ink-700">
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1}
+              className="w-8 h-8 rounded-full bg-white border border-ink-200 flex items-center justify-center tap disabled:opacity-40">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="#666" strokeWidth="2" strokeLinecap="round"/></svg>
+            </button>
+            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+              const start = Math.max(1, safePage - 2)
+              const p = start + i
+              if (p > totalPages) return null
+              return (
+                <button key={p} onClick={() => setPage(p)}
+                  className={`w-8 h-8 rounded-full text-[12px] tap ${p === safePage ? 'bg-brand text-white' : 'bg-white border border-ink-200 text-ink-700'}`}>{p}</button>
+              )
+            })}
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages}
+              className="w-8 h-8 rounded-full bg-white border border-ink-200 flex items-center justify-center tap disabled:opacity-40">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="#666" strokeWidth="2" strokeLinecap="round"/></svg>
+            </button>
+          </div>
+          <div className="px-3 pb-3 flex items-center justify-center gap-2 text-[11px] text-ink-500">
+            <span>{PAGE_SIZE}条/页</span>
+            <span className="text-ink-300">|</span>
+            <span>共 {total} 条</span>
+          </div>
+        </>
+      )}
 
-      {/* 底部 重置/确认 - 仅当有筛选时显示 */}
-      {hasAnyFilter && (
-        <div className="sticky bottom-0 bg-white px-3 py-3 z-30 flex gap-3 border-t border-ink-100 mt-3">
-          <button onClick={handleReset} className="flex-1 h-11 bg-white border border-ink-200 rounded-full text-[14px] text-ink-700 active:bg-ink-50 tap">重 置</button>
-          <button onClick={() => {}} className="flex-1 h-11 bg-brand text-white rounded-full text-[14px] active:opacity-90 tap">确 认</button>
-        </div>
+      {/* 高级筛选 Sheet */}
+      {filterOpen && (
+        <AdvertiserTaskAdvancedFilter
+          values={advanced}
+          setValues={setAdvanced}
+          statusOptions={STATUS_OPTIONS}
+          typeOptions={TYPE_OPTIONS}
+          groupOptions={GROUP_OPTIONS}
+          onApply={handleSheetApply}
+          onClose={() => setFilterOpen(false)}
+        />
       )}
     </>
   )
@@ -3509,8 +3773,8 @@ function PolicyListSection({ node }) {
     setTimeout(() => setToast(null), 1800)
   }
 
-  // 钉钉式：行内日期 + 漏斗
-  const [dateRange, setDateRange] = useState({ start: '', end: '' })
+  // 钉钉式：行内政策名称搜索框 + 漏斗
+  const [nameQuery, setNameQuery] = useState('')
   const [filterOpen, setFilterOpen] = useState(false)
   const [advanced, setAdvanced] = useState({
     project: '', platform: '', customerName: '', groupName: '', creator: '',
@@ -3522,26 +3786,11 @@ function PolicyListSection({ node }) {
   const APPROVAL_OPTIONS = ['审批通过', '审批中', '已驳回']
   const PAY_TYPE_OPTIONS = Array.from(new Set(data.map(d => d.payType).filter(Boolean)))
 
-  const handleDateChange = ({ start, end }) => {
-    setDateRange({ start, end })
-    setAdvanced(a => ({ ...a, updatedStart: start, updatedEnd: end }))
-  }
-  const handleSheetApply = () => {
-    setDateRange({ start: advanced.updatedStart || '', end: advanced.updatedEnd || '' })
-    setFilterOpen(false)
-  }
-  const handleSheetReset = () => {
-    setAdvanced({
-      project: '', platform: '', customerName: '', groupName: '', creator: '',
-      approval: '', payType: '', updatedStart: '', updatedEnd: '',
-    })
-    setDateRange({ start: '', end: '' })
-  }
-
   const otherAdvancedCount = Object.entries(advanced).filter(([k, v]) => v && k !== 'updatedStart' && k !== 'updatedEnd').length
-  const activeFilterCount = (dateRange.start || dateRange.end ? 1 : 0) + otherAdvancedCount
+  const activeFilterCount = (nameQuery ? 1 : 0) + otherAdvancedCount
 
   const filteredData = data.filter(item => {
+    if (nameQuery && !String(item.name || '').includes(nameQuery)) return false
     if (advanced.updatedStart && item.updatedAt && item.updatedAt < advanced.updatedStart) return false
     if (advanced.updatedEnd   && item.updatedAt && item.updatedAt > advanced.updatedEnd) return false
     if (advanced.project && !String(item.project || '').includes(advanced.project)) return false
@@ -3556,12 +3805,26 @@ function PolicyListSection({ node }) {
 
   return (
     <>
-      {/* 钉钉式查询条件卡（单行：日期 + 漏斗） */}
+      {/* 钉钉式查询条件卡（单行：政策名称搜索 + 漏斗） */}
       <div className="card mx-3 mt-3 overflow-hidden">
         <div className="flex items-center gap-2 px-3 py-2.5">
-          <span className="text-[11px] text-ink-500 shrink-0">更新时间</span>
-          <DateRangePicker value={dateRange} onChange={handleDateChange}/>
-          <div className="flex-1"/>
+          <span className="text-[11px] text-ink-500 shrink-0">政策名称</span>
+          <div className="flex-1 bg-ink-50 rounded-full h-9 flex items-center px-4 text-[12px]">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="mr-2 shrink-0">
+              <circle cx="11" cy="11" r="7" stroke="#999" strokeWidth="2"/>
+              <path d="M16 16l4 4" stroke="#999" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            <input value={nameQuery} onChange={e => setNameQuery(e.target.value)}
+              placeholder="请输入政策名称"
+              className="flex-1 bg-transparent text-ink-900 placeholder:text-ink-400 focus:outline-none"/>
+            {nameQuery && (
+              <button onClick={() => setNameQuery('')} className="tap shrink-0">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                  <path d="M6 6l12 12M6 18L18 6" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </button>
+            )}
+          </div>
           <button onClick={() => setFilterOpen(true)}
             className="w-9 h-9 bg-ink-50 rounded-full flex items-center justify-center tap relative shrink-0">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -3619,8 +3882,11 @@ function PolicyListSection({ node }) {
           data={data}
           approvalOptions={APPROVAL_OPTIONS}
           payTypeOptions={PAY_TYPE_OPTIONS}
-          onApply={handleSheetApply}
-          onReset={handleSheetReset}
+          onApply={() => setFilterOpen(false)}
+          onReset={() => setAdvanced({
+            project: '', platform: '', customerName: '', groupName: '', creator: '',
+            approval: '', payType: '', updatedStart: '', updatedEnd: '',
+          })}
           onClose={() => setFilterOpen(false)}/>
       )}
 
@@ -5427,24 +5693,121 @@ function StaffKpiDataSection({ emp, deptLabel, data, highlightMedia, onMediaClic
 
 // ============ 变更记录（PC 端变更记录表重设计）============
 // 信息架构：
-//   1. 顶部 Sticky 筛选：创建人 + 媒体平台 + 创建时间 + 漏斗
-//   2. 卡片列表：每条变更一张卡（修改类型 chip + 媒体 + 变更说明 + 修改前后 + 创建人 + 时间）
-//   3. 分页器：15 条/页 + 跳转
+//   1. 顶部 Sticky 筛选：创建时间 + 漏斗
+//   2. 漏斗 Sheet 含全部条件：创建人、媒体平台、变更类型
+//   3. 卡片列表：每条变更一张卡（修改类型 chip + 媒体 + 变更说明 + 修改前后 + 创建人 + 时间）
+//   4. 分页器：15 条/页
+function ChangeLogAdvancedFilter({ values, setValues, mediaOptions, typeOptions, onClose, onApply }) {
+  const fields = [
+    { key: 'operator', label: '创建人',   kind: 'input' },
+    { key: 'media',    label: '媒体平台', kind: 'select', options: mediaOptions },
+    { key: 'type',     label: '变更类型', kind: 'select', options: typeOptions },
+    { key: 'timeRange', label: '创建时间', kind: 'daterange' },
+  ]
+  const [active, setActive] = useState('operator')
+  const set = (k, v) => setValues(s => ({ ...s, [k]: v }))
+  const activeField = fields.find(f => f.key === active)
+  const handleApply = () => { onApply && onApply(); onClose() }
+  const handleReset = () => {
+    setValues({ operator: '', media: '', type: '', timeStart: '', timeEnd: '' })
+  }
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/40 flex items-end" onClick={onClose}>
+      <div className="w-full bg-white rounded-t-2xl h-[80vh] flex flex-col relative" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-ink-100">
+          <h2 className="text-[15px] font-medium text-ink-900">高级筛选</h2>
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center tap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M6 6l12 12M18 6L6 18" stroke="#999" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <div className="flex flex-1 min-h-0">
+          <div className="w-[100px] bg-ink-50 overflow-y-auto">
+            {fields.map(f => (
+              <button key={f.key} onClick={() => setActive(f.key)}
+                className={`w-full px-3 py-3 text-left text-[12px] tap border-l-2 ${
+                  active === f.key ? 'bg-white text-brand border-brand font-medium' : 'text-ink-700 border-transparent'
+                }`}>{f.label}</button>
+            ))}
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">
+            {activeField?.kind === 'input' && (
+              <input value={values[active] || ''} onChange={e => set(active, e.target.value)}
+                placeholder={`请输入${activeField.label}`}
+                className="w-full h-9 px-3 bg-ink-50 rounded text-[13px] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-1 focus:ring-brand"/>
+            )}
+            {activeField?.kind === 'select' && (
+              <div className="space-y-2">
+                <label onClick={() => set(active, '')} className="flex items-center gap-2 px-2 py-2 rounded tap cursor-pointer">
+                  <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${!values[active] ? 'border-brand' : 'border-ink-200'}`}>
+                    {!values[active] && <span className="w-2 h-2 rounded-full bg-brand"/>}
+                  </span>
+                  <span className="text-[13px] text-ink-900">全部</span>
+                </label>
+                {activeField.options.map(opt => (
+                  <label key={opt} onClick={() => set(active, opt)} className="flex items-center gap-2 px-2 py-2 rounded tap cursor-pointer">
+                    <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${values[active] === opt ? 'border-brand' : 'border-ink-200'}`}>
+                      {values[active] === opt && <span className="w-2 h-2 rounded-full bg-brand"/>}
+                    </span>
+                    <span className="text-[13px] text-ink-900">{opt}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+            {activeField?.kind === 'daterange' && (
+              <div className="flex items-center gap-2">
+                <input type="date" value={values.timeStart || ''} onChange={e => set('timeStart', e.target.value)}
+                  className="flex-1 h-9 px-3 bg-ink-50 rounded text-[12px] text-ink-900 focus:outline-none focus:ring-1 focus:ring-brand"/>
+                <span className="text-ink-400 text-[12px]">~</span>
+                <input type="date" value={values.timeEnd || ''} onChange={e => set('timeEnd', e.target.value)}
+                  className="flex-1 h-9 px-3 bg-ink-50 rounded text-[12px] text-ink-900 focus:outline-none focus:ring-1 focus:ring-brand"/>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="flex-none flex border-t border-ink-100 px-3 py-3 gap-3 bg-white">
+          <button onClick={handleReset} className="flex-1 h-11 bg-white border border-ink-200 rounded-full text-[14px] text-ink-700 active:bg-ink-50 tap">重 置</button>
+          <button onClick={handleApply} className="flex-1 h-11 bg-brand text-white rounded-full text-[14px] active:opacity-90 tap">确 认</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ChangeLogSection() {
-  const MEDIA_OPTS = ['全部', ...Array.from(new Set(changeLogData.map(d => d.media)))]
-  const [operatorQuery, setOperatorQuery] = useState('') // 创建人搜索框
-  const [media, setMedia] = useState('全部')
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
+  const MEDIA_OPTS = Array.from(new Set(changeLogData.map(d => d.media).filter(Boolean)))
+  const TYPE_OPTS  = Array.from(new Set(changeLogData.map(d => d.type).filter(Boolean)))
+  const [dateRange, setDateRange] = useState({ start: '', end: '' })
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [advanced, setAdvanced] = useState({
+    operator: '', media: '', type: '',
+    timeStart: '', timeEnd: '',
+  })
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 15
 
+  const handleDateChange = ({ start, end }) => {
+    setDateRange({ start, end })
+    setAdvanced(a => ({ ...a, timeStart: start, timeEnd: end }))
+  }
+  const handleSheetApply = () => {
+    setDateRange({ start: advanced.timeStart || '', end: advanced.timeEnd || '' })
+    setFilterOpen(false)
+  }
+
+  const otherAdvancedCount = Object.entries(advanced).filter(([k, v]) => v && k !== 'timeStart' && k !== 'timeEnd').length
+  const activeAdvancedCount = (dateRange.start || dateRange.end ? 1 : 0) + otherAdvancedCount
+
   // 筛选
   const filtered = changeLogData.filter(r => {
-    if (operatorQuery && !r.operator.includes(operatorQuery)) return false
-    if (media !== '全部' && r.media !== media) return false
-    if (startDate && r.time < startDate) return false
-    if (endDate && r.time > endDate + ' 23:59:59') return false
+    if (advanced.operator && !r.operator.includes(advanced.operator)) return false
+    if (advanced.media && r.media !== advanced.media) return false
+    if (advanced.type && r.type !== advanced.type) return false
+    const ds = advanced.timeStart || dateRange.start
+    const de = advanced.timeEnd   || dateRange.end
+    if (ds && r.time < ds) return false
+    if (de && r.time > de + ' 23:59:59') return false
     return true
   })
   const total = filtered.length
@@ -5452,50 +5815,25 @@ function ChangeLogSection() {
   const safePage = Math.min(page, totalPages)
   const paged = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
+  useEffect(() => { setPage(1) }, [advanced, dateRange])
+
   return (
     <div className="bg-ink-50 pb-4 min-h-full">
-      {/* ============ 顶部 Sticky 筛选 ============ */}
-      <div className="sticky top-12 z-20 bg-white border-b border-ink-100 shadow-sm">
-        <div className="px-3 py-2 flex items-center gap-2 flex-wrap">
-          {/* 创建人（搜索框） */}
-          <div className="flex items-center gap-1.5 flex-1 min-w-[140px]">
-            <span className="text-[12px] text-ink-500 shrink-0">创建人</span>
-            <div className="relative flex-1">
-              <input
-                type="text"
-                value={operatorQuery}
-                onChange={e => setOperatorQuery(e.target.value)}
-                placeholder="请输入姓名"
-                className="form-input h-7 pl-7 text-[12px]"
-              />
-              <svg className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" width="12" height="12" viewBox="0 0 24 24" fill="none">
-                <circle cx="11" cy="11" r="7" stroke="#999" strokeWidth="2"/>
-                <path d="M21 21l-4.3-4.3" stroke="#999" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-            </div>
-          </div>
-          {/* 媒体平台 */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-[12px] text-ink-500 shrink-0">媒体平台</span>
-            <DeptKpiSettingPicker value={media} onChange={setMedia} options={MEDIA_OPTS}/>
-          </div>
-          {/* 创建时间 */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-[12px] text-ink-500 shrink-0">创建时间</span>
-            <input
-              type="date"
-              value={startDate}
-              onChange={e => setStartDate(e.target.value)}
-              className="form-input h-7 px-2 text-[12px] w-32"
-            />
-            <span className="text-ink-400">~</span>
-            <input
-              type="date"
-              value={endDate}
-              onChange={e => setEndDate(e.target.value)}
-              className="form-input h-7 px-2 text-[12px] w-32"
-            />
-          </div>
+      {/* ============ 钉钉式查询条件卡（行 1：创建时间 + 漏斗）============ */}
+      <div className="card mx-3 mt-3 overflow-hidden">
+        <div className="flex items-center gap-2 px-3 py-2.5">
+          <span className="text-[11px] text-ink-500 shrink-0">创建时间</span>
+          <DateRangePicker value={dateRange} onChange={handleDateChange}/>
+          <div className="flex-1"/>
+          <button onClick={() => setFilterOpen(true)}
+            className="w-9 h-9 bg-ink-50 rounded-full flex items-center justify-center tap relative shrink-0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M3 5h18l-7 9v6l-4-2v-4L3 5z" stroke="#666" strokeWidth="1.8" strokeLinejoin="round"/>
+            </svg>
+            {activeAdvancedCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-brand text-white text-[10px] rounded-full flex items-center justify-center">{activeAdvancedCount}</span>
+            )}
+          </button>
         </div>
       </div>
 
@@ -5577,6 +5915,18 @@ function ChangeLogSection() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* ============ 高级筛选 Sheet ============ */}
+      {filterOpen && (
+        <ChangeLogAdvancedFilter
+          values={advanced}
+          setValues={setAdvanced}
+          mediaOptions={MEDIA_OPTS}
+          typeOptions={TYPE_OPTS}
+          onApply={handleSheetApply}
+          onClose={() => setFilterOpen(false)}
+        />
       )}
     </div>
   )

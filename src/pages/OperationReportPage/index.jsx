@@ -1,9 +1,13 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import dayjs from 'dayjs'
+import weekOfYear from 'dayjs/plugin/weekOfYear'
 import {
   PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, LabelList, Legend,
 } from 'recharts'
 import { operationReportData, monthlyReportDetailData } from '../../data/mock'
+import DateRangePicker from '../../components/DateRangePicker'
+
+dayjs.extend(weekOfYear)
 
 // ============ 常量 ============
 const BORDER_COLOR = {
@@ -59,13 +63,233 @@ function GroupTitle({ children, right }) {
   )
 }
 
+// ============ 月份 picker（对应运营月报）============
+function MonthYearPicker({ value, onChange }) {
+  const [open, setOpen] = useState(false)
+  const valueDay = dayjs(value + '-01')
+  const [year, setYear] = useState(valueDay.year())
+  const ref = useRef(null)
+  useEffect(() => {
+    if (!open) return
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+  useEffect(() => { if (!open) setYear(valueDay.year()) }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+  const handleSelect = (m) => {
+    onChange(`${year}-${String(m).padStart(2, '0')}`)
+    setOpen(false)
+  }
+  return (
+    <div className="relative shrink-0" ref={ref}>
+      <button onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1.5 h-8 px-3 bg-ink-50 rounded-full text-[12px] text-ink-700 tap whitespace-nowrap"
+        aria-label="选择月份">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+          <rect x="3" y="5" width="18" height="16" rx="2" stroke="#4E5969" strokeWidth="1.6"/>
+          <path d="M3 9h18M8 3v4M16 3v4" stroke="#4E5969" strokeWidth="1.6" strokeLinecap="round"/>
+        </svg>
+        <span className="tabular-nums">{value}</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+          className={`transition-transform ${open ? 'rotate-180' : ''}`}>
+          <path d="M6 9l6 6 6-6" stroke="#4E5969" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 mt-1 z-50 bg-white rounded-xl shadow-xl border border-ink-100 p-3 w-[268px]">
+          <div className="flex items-center justify-between mb-3">
+            <button onClick={() => setYear(year - 1)}
+              className="w-8 h-8 rounded-full flex items-center justify-center tap hover:bg-ink-50" aria-label="上一年">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M15 6l-6 6 6 6" stroke="#4E5969" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            <span className="text-[14px] font-medium text-ink-900 tabular-nums">{year}年</span>
+            <button onClick={() => setYear(year + 1)}
+              className="w-8 h-8 rounded-full flex items-center justify-center tap hover:bg-ink-50" aria-label="下一年">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M9 6l6 6-6 6" stroke="#4E5969" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </div>
+          <div className="grid grid-cols-4 gap-1.5">
+            {Array.from({ length: 12 }, (_, i) => i + 1).map(m => {
+              const active = valueDay.year() === year && (valueDay.month() + 1) === m
+              return (
+                <button key={m} onClick={() => handleSelect(m)}
+                  className={`h-8 rounded-lg text-[12px] tap tabular-nums ${
+                    active ? 'bg-brand text-white' : 'bg-ink-50 text-ink-700 active:bg-ink-100'
+                  }`}>{m}月</button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ============ 周 picker（对应运营周报）============
+function WeekYearPicker({ value, onChange }) {
+  const [open, setOpen] = useState(false)
+  const m = /^(.*)-W(\d{1,2})$/.exec(value || '')
+  const valueYear = m ? Number(m[1]) : dayjs().year()
+  const valueW = m ? Number(m[2]) : 1
+  const [year, setYear] = useState(valueYear)
+  const ref = useRef(null)
+  useEffect(() => {
+    if (!open) return
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+  useEffect(() => { if (!open) setYear(valueYear) }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+  const handleSelect = (w) => {
+    onChange(`${year}-W${String(w).padStart(2, '0')}`)
+    setOpen(false)
+  }
+  const totalWeeks = dayjs(`${year}-12-28`).week() === 53 ? 53 : 52
+  return (
+    <div className="relative shrink-0" ref={ref}>
+      <button onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1.5 h-8 px-3 bg-ink-50 rounded-full text-[12px] text-ink-700 tap whitespace-nowrap"
+        aria-label="选择周">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+          <rect x="3" y="5" width="18" height="16" rx="2" stroke="#4E5969" strokeWidth="1.6"/>
+          <path d="M3 9h18M8 3v4M16 3v4" stroke="#4E5969" strokeWidth="1.6" strokeLinecap="round"/>
+        </svg>
+        <span className="tabular-nums">{value}</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+          className={`transition-transform ${open ? 'rotate-180' : ''}`}>
+          <path d="M6 9l6 6 6-6" stroke="#4E5969" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 mt-1 z-50 bg-white rounded-xl shadow-xl border border-ink-100 p-3 w-[268px] max-h-[320px] overflow-y-auto">
+          <div className="flex items-center justify-between mb-3">
+            <button onClick={() => setYear(year - 1)}
+              className="w-8 h-8 rounded-full flex items-center justify-center tap hover:bg-ink-50" aria-label="上一年">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M15 6l-6 6 6 6" stroke="#4E5969" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            <span className="text-[14px] font-medium text-ink-900 tabular-nums">{year}年</span>
+            <button onClick={() => setYear(year + 1)}
+              className="w-8 h-8 rounded-full flex items-center justify-center tap hover:bg-ink-50" aria-label="下一年">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M9 6l6 6-6 6" stroke="#4E5969" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </div>
+          <div className="grid grid-cols-4 gap-1.5">
+            {Array.from({ length: totalWeeks }, (_, i) => i + 1).map(w => {
+              const active = valueYear === year && valueW === w
+              return (
+                <button key={w} onClick={() => handleSelect(w)}
+                  className={`h-8 rounded-lg text-[12px] tap tabular-nums ${
+                    active ? 'bg-brand text-white' : 'bg-ink-50 text-ink-700 active:bg-ink-100'
+                  }`}>W{w}</button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ============ 季度 picker（对应运营季报）============
+function QuarterYearPicker({ value, onChange }) {
+  const [open, setOpen] = useState(false)
+  const m = /^(.*)-Q([1-4])$/.exec(value || '')
+  const valueYear = m ? Number(m[1]) : dayjs().year()
+  const valueQ = m ? Number(m[2]) : 1
+  const [year, setYear] = useState(valueYear)
+  const ref = useRef(null)
+  useEffect(() => {
+    if (!open) return
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+  useEffect(() => { if (!open) setYear(valueYear) }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+  const handleSelect = (q) => {
+    onChange(`${year}-Q${q}`)
+    setOpen(false)
+  }
+  return (
+    <div className="relative shrink-0" ref={ref}>
+      <button onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1.5 h-8 px-3 bg-ink-50 rounded-full text-[12px] text-ink-700 tap whitespace-nowrap"
+        aria-label="选择季度">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+          <rect x="3" y="5" width="18" height="16" rx="2" stroke="#4E5969" strokeWidth="1.6"/>
+          <path d="M3 9h18M8 3v4M16 3v4" stroke="#4E5969" strokeWidth="1.6" strokeLinecap="round"/>
+        </svg>
+        <span className="tabular-nums">{value}</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+          className={`transition-transform ${open ? 'rotate-180' : ''}`}>
+          <path d="M6 9l6 6 6-6" stroke="#4E5969" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 mt-1 z-50 bg-white rounded-xl shadow-xl border border-ink-100 p-3 w-[268px]">
+          <div className="flex items-center justify-between mb-3">
+            <button onClick={() => setYear(year - 1)}
+              className="w-8 h-8 rounded-full flex items-center justify-center tap hover:bg-ink-50" aria-label="上一年">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M15 6l-6 6 6 6" stroke="#4E5969" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            <span className="text-[14px] font-medium text-ink-900 tabular-nums">{year}年</span>
+            <button onClick={() => setYear(year + 1)}
+              className="w-8 h-8 rounded-full flex items-center justify-center tap hover:bg-ink-50" aria-label="下一年">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M9 6l6 6-6 6" stroke="#4E5969" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { q: 1, label: 'Q1 · 1-3月' },
+              { q: 2, label: 'Q2 · 4-6月' },
+              { q: 3, label: 'Q3 · 7-9月' },
+              { q: 4, label: 'Q4 · 10-12月' },
+            ].map(({ q, label }) => {
+              const active = valueYear === year && valueQ === q
+              return (
+                <button key={q} onClick={() => handleSelect(q)}
+                  className={`h-9 rounded-lg text-[12px] tap tabular-nums ${
+                    active ? 'bg-brand text-white' : 'bg-ink-50 text-ink-700 active:bg-ink-100'
+                  }`}>{label}</button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ============ 行 1：周期 chip + 漏斗 ============
-function PeriodRow({ periodLabel, period, activeCount, onFunnel, onExport }) {
+function PeriodRow({ periodKind, periodLabel, period, onPeriodChange, activeCount, onFunnel, onExport }) {
+  const renderPicker = () => {
+    if (periodKind === 'daily') {
+      return <DateRangePicker value={typeof period === 'string' && period.includes('~') ? { start: period.split('~')[0].trim(), end: period.split('~')[1].trim() } : { start: '', end: '' }} onChange={({ start, end }) => onPeriodChange(start && end ? `${start}~${end}` : start || '')}/>
+    } else if (periodKind === 'weekly') {
+      return <WeekYearPicker value={period} onChange={onPeriodChange}/>
+    } else if (periodKind === 'monthly') {
+      return <MonthYearPicker value={period} onChange={onPeriodChange}/>
+    } else if (periodKind === 'quarterly') {
+      return <QuarterYearPicker value={period} onChange={onPeriodChange}/>
+    }
+    return <span className="h-8 px-3 bg-ink-50 rounded-full text-[12px] text-ink-700 font-mono flex items-center shrink-0">{period}</span>
+  }
   return (
     <div className="mx-2 mt-2 card">
       <div className="flex items-center gap-2 px-2.5 py-2">
         <span className="text-[12px] text-ink-500 shrink-0">统计{periodLabel}:</span>
-        <span className="h-8 px-3 bg-ink-50 rounded-full text-[12px] text-ink-700 font-mono flex items-center shrink-0">{period}</span>
+        {renderPicker()}
         <button onClick={onFunnel}
           className="ml-auto w-8 h-8 bg-ink-50 rounded-full flex items-center justify-center tap relative shrink-0"
           aria-label="更多筛选">
@@ -790,8 +1014,10 @@ export default function OperationReportPage({ node }) {
     <div className="bg-ink-50 pb-4 min-h-full">
       {/* 行 1：周期 chip + 漏斗 + 导出 */}
       <PeriodRow
+        periodKind={period}
         periodLabel={PERIOD_LABEL[period]}
         period={data.period}
+        onPeriodChange={p => {/* 数据保持固定，仅视觉同步 */}}
         activeCount={activeAdvancedCount}
         onFunnel={() => setAdvOpen(true)}
         onExport={handleExport}

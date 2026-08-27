@@ -46,6 +46,8 @@ export default function DateRangePicker({ value, onChange, label = '统计日期
     else             onChange({ start: '', end: '' }) // 全清空 = 不限
     setOpen(false)
   }
+  // 钉钉式：第 1 个 chip = 不限（清空选择，回到"不限"状态）
+  const handleClear = () => { setStart(''); setEnd('') }
 
   const presets = [
     { label: '今日',   range: { start: TODAY.format('YYYY-MM-DD'),                     end: TODAY.format('YYYY-MM-DD') } },
@@ -98,6 +100,11 @@ export default function DateRangePicker({ value, onChange, label = '统计日期
             </div>
           </div>
           <div className="px-3 py-2 border-b border-ink-100 flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
+            <button type="button"
+              onClick={handleClear}
+              className={`h-6 px-2.5 rounded-full text-[11px] tap whitespace-nowrap shrink-0 ${
+                !start && !end ? 'bg-brand text-white' : 'bg-ink-50 text-ink-700 active:bg-ink-100'
+              }`}>不限</button>
             {presets.map(p => {
               const active = start === p.range.start && end === p.range.end
               return (
