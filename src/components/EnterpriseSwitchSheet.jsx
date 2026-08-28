@@ -4,7 +4,7 @@ import { userEnterprisesData } from '../data/mock'
 /**
  * 切换企业 sheet（钉钉式底部弹出）
  * - 列表式：左侧 logo 色块 + 企业名 + 角色，右侧当前/未选标记
- * - 底部「管理企业」入口 + 取消/确认切换双按钮
+ * - 底部取消/确认切换双按钮
  * Props:
  *   currentId    当前企业 id
  *   onClose      关闭 sheet
@@ -61,17 +61,6 @@ export default function EnterpriseSwitchSheet({ currentId, onClose, onSwitch }) 
               </button>
             )
           })}
-        </div>
-
-        {/* 底部「管理企业」入口 */}
-        <div className="shrink-0 border-t border-ink-100 bg-ink-50 px-4 py-3">
-          <button className="w-full flex items-center justify-between text-[13px] text-ink-700 tap">
-            <span>管理企业</span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path d="M9 6l6 6-6 6" stroke="#BFBFBF" strokeWidth="2"
-                strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
         </div>
 
         {/* 底部按钮（确认切换） */}
