@@ -3089,3 +3089,10 @@ export const operationReportDetailData = {
   monthly: monthlyReportDetailData,
   quarterly: monthlyReportDetailData,
 }
+
+// 当前账号入驻的企业列表（用户可在「我的」页/工作台顶栏切换）
+export const userEnterprisesData = [
+  { id: 'E001', name: '央广代理',     role: '管理员', logoColor: '#2D7FF9' },
+  { id: 'E002', name: '北方传媒',     role: '成员',   logoColor: '#FF9A3C' },
+  { id: 'E003', name: '众合广告代理', role: '成员',   logoColor: '#9B7FF5' },
+]

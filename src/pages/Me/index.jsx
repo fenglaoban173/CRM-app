@@ -1,12 +1,15 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { TopBar } from '../Reports'
-import { todos } from '../../data/mock'
+import { todos, userEnterprisesData } from '../../data/mock'
+import EnterpriseSwitchSheet from '../../components/EnterpriseSwitchSheet'
 
 export default function Me() {
   const nav = useNavigate()
   const [showPwd, setShowPwd] = useState(false)
   const [toast, setToast] = useState('')
+  const [currentEnterprise, setCurrentEnterprise] = useState(userEnterprisesData[0])
+  const [enterpriseSheetOpen, setEnterpriseSheetOpen] = useState(false)
 
   const showToast = (msg) => {
     setToast(msg)
@@ -33,6 +36,25 @@ export default function Me() {
             </svg>
           </button>
         </div>
+      </div>
+
+      {/* 当前企业卡（钉钉式：紧邻用户卡，点开 sheet 切换） */}
+      <div className="mx-3 mt-3 card overflow-hidden">
+        <div className="group-title">当前企业</div>
+        <button onClick={() => setEnterpriseSheetOpen(true)}
+          className="w-full flex items-center gap-3 px-4 py-3 tap text-left">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white text-[14px] font-medium shrink-0"
+            style={{ background: currentEnterprise.logoColor }}>
+            {currentEnterprise.name.slice(0, 1)}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[14px] text-ink-900 truncate">{currentEnterprise.name}</div>
+            <div className="text-[11px] text-ink-400 mt-0.5">{currentEnterprise.role}</div>
+          </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="shrink-0">
+            <path d="M9 6l6 6-6 6" stroke="#BFBFBF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
       </div>
 
       {/* ============ 我的代办 7 类带数字 ============ */}
@@ -93,6 +115,19 @@ export default function Me() {
         <ChangePasswordModal
           onClose={() => setShowPwd(false)}
           onToast={showToast}
+        />
+      )}
+
+      {enterpriseSheetOpen && (
+        <EnterpriseSwitchSheet
+          currentId={currentEnterprise.id}
+          onClose={() => setEnterpriseSheetOpen(false)}
+          onSwitch={(id) => {
+            const next = userEnterprisesData.find(e => e.id === id)
+            setCurrentEnterprise(next)
+            setEnterpriseSheetOpen(false)
+            showToast(`已切换到「${next.name}」`)
+          }}
         />
       )}
 
