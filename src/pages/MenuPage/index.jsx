@@ -2546,6 +2546,9 @@ function AdvertiserDetailListSectionInner({ node }) {
   // 多开户导入 modal
   const [importOpen, setImportOpen] = useState(false)
 
+  // 已完成 确认 modal
+  const [completeTarget, setCompleteTarget] = useState(null)
+
   // 行内 开户序列号搜索
   const [seqQuery, setSeqQuery] = useState('')
   // 漏斗 sheet 7 字段（按 PC截图：集团名称 / 政策名称 / 开户主体 / 媒体平台 / 开户状态 / 下户时间 / 下户申请人）
@@ -2725,6 +2728,9 @@ function AdvertiserDetailListSectionInner({ node }) {
             fields={fields}
             onAction={(action, it) => {
               if (action === '详情') nav(`/advertiser/detail/info/${it.id}`)
+              else if (action === '录入') nav(`/advertiser/detail/entry/${it.id}`)
+              else if (action === '任务记录') nav('/m/2313')
+              else if (action === '已完成') setCompleteTarget(it)
               else showToast(`${action}：${it.id}`, 'info')
             }}
           />
@@ -2737,9 +2743,49 @@ function AdvertiserDetailListSectionInner({ node }) {
       {/* 多开户导入 modal */}
       {importOpen && <MultiImportModal onClose={() => setImportOpen(false)}/>}
 
+      {/* 已完成 确认 modal */}
+      {completeTarget && (
+        <CompleteConfirmModal
+          item={completeTarget}
+          onCancel={() => setCompleteTarget(null)}
+          onConfirm={() => {
+            showToast(`已标记完成：${completeTarget.detailName}`, 'success')
+            setCompleteTarget(null)
+          }}
+        />
+      )}
+
       {/* Toast */}
       {toast && <Toast type={toast.type} message={toast.msg}/>}
     </>
+  )
+}
+
+// 已完成 确认 modal（钉钉式居中弹窗：明细名称 + 提示文案 + 取消/确认）
+function CompleteConfirmModal({ item, onCancel, onConfirm }) {
+  return (
+    <div className="fixed inset-0 z-[80] bg-black/40 flex items-center justify-center px-6" onClick={onCancel}>
+      <div className="w-full max-w-[340px] bg-white rounded-2xl shadow-2xl overflow-hidden animate-fade-in" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 pt-4 pb-2">
+          <h3 className="text-[16px] font-medium text-ink-900">标记完成</h3>
+          <button onClick={onCancel} className="w-6 h-6 flex items-center justify-center tap">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="#999" strokeWidth="2" strokeLinecap="round"/></svg>
+          </button>
+        </div>
+        <div className="px-5 pt-1 pb-4">
+          <div className="text-[13px] text-ink-700 leading-relaxed">
+            确认将「<span className="text-ink-900 font-medium">{item.detailName}</span>」标记为已完成？
+          </div>
+          <div className="mt-3 px-3 py-2 bg-ink-50 rounded text-[11px] text-ink-500 leading-relaxed">
+            说明：标记完成后该开户明细状态将变为「已完成」，对应的录入记录可在「任务记录」中查看。
+          </div>
+        </div>
+        <div className="flex-none flex border-t border-ink-100 px-3 py-3 gap-3">
+          <button onClick={onCancel} className="flex-1 h-10 bg-white border border-ink-200 rounded-full text-[14px] text-ink-700 active:bg-ink-50 tap">取 消</button>
+          <button onClick={onConfirm} className="flex-1 h-10 bg-brand text-white rounded-full text-[14px] active:opacity-90 tap">确认完成</button>
+        </div>
+      </div>
+    </div>
   )
 }
 
