@@ -29,6 +29,8 @@ export default function AdvertiserApplyPage() {
   const [accounts, setAccounts] = useState([
     blankAccount(),
   ])
+  // 账户卡折叠状态：默认全部展开
+  const [collapsed, setCollapsed] = useState(() => new Set())
 
   // 主体列表（可新建主体往里加）
   const initialSubjects = (findNode(99)?.data || []).map(g => `${g.name}有限公司`).filter(Boolean)
@@ -81,6 +83,11 @@ export default function AdvertiserApplyPage() {
   const updateAccount = (idx, key, val) => {
     setAccounts(arr => arr.map((a, i) => i === idx ? { ...a, [key]: val } : a))
   }
+  const toggleAccountCollapse = (idx) => setCollapsed(prev => {
+    const next = new Set(prev)
+    next.has(idx) ? next.delete(idx) : next.add(idx)
+    return next
+  })
 
   // 新建主体
   const confirmCreateSubject = () => {
@@ -147,6 +154,8 @@ export default function AdvertiserApplyPage() {
               total={accounts.length}
               account={acc}
               subjects={subjects}
+              collapsed={collapsed.has(idx)}
+              onToggle={() => toggleAccountCollapse(idx)}
               onChange={(k, v) => updateAccount(idx, k, v)}
               onCopy={() => copyAccount(idx)}
               onDelete={() => deleteAccount(idx)}
@@ -191,59 +200,77 @@ function blankAccount(prev) {
   }
 }
 
-// 单条账户卡（9 字段 + 复制 / 删除）
-function AccountCard({ index, total, account, subjects, onChange, onCopy, onDelete, industryL2Map, typeOptions, industryL1Options }) {
+// 单条账户卡（9 字段 + 复制 / 删除 + 可折叠）
+function AccountCard({ index, total, account, subjects, collapsed, onToggle, onChange, onCopy, onDelete, industryL2Map, typeOptions, industryL1Options }) {
   const industryL2Opts = industryL2Map[account.industryL1] || []
   const isOnly = total === 1
+  // 折叠态摘要：明细名称 / 主体 / 类型（最具辨识度的三个字段）
+  const summaryText = [account.detailName, account.subject, account.type]
+    .filter(Boolean)
+    .join(' · ') || '未填写'
+
   return (
     <div className="border border-ink-200 rounded-lg overflow-hidden bg-white">
-      <div className="px-4 py-2.5 border-b border-ink-100 flex items-center justify-between">
-        <div className="text-[13px] font-medium text-ink-900">账户 {index + 1}</div>
-        <div className="flex items-center gap-2">
-          <button onClick={onCopy}
+      <div
+        onClick={onToggle}
+        className="px-4 py-2.5 flex items-center justify-between cursor-pointer tap active:bg-ink-50"
+      >
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <span className="text-[13px] font-medium text-ink-900 shrink-0">账户 {index + 1}</span>
+          {collapsed && (
+            <span className="text-[12px] text-ink-500 truncate">{summaryText}</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button onClick={e => { e.stopPropagation(); onCopy() }}
             className="h-7 px-3 bg-brand text-white rounded text-[11px] flex items-center gap-1 tap active:opacity-90">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="11" height="11" rx="2" stroke="#fff" strokeWidth="1.8"/><path d="M5 15V6a2 2 0 012-2h9" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/></svg>
             复制
           </button>
           {!isOnly && (
-            <button onClick={onDelete}
+            <button onClick={e => { e.stopPropagation(); onDelete() }}
               className="h-7 px-3 bg-brand text-white rounded text-[11px] flex items-center gap-1 tap active:opacity-90">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M6 6l1 14a2 2 0 002 2h6a2 2 0 002-2l1-14" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/></svg>
               删除
             </button>
           )}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className={`transition-transform ${collapsed ? '' : 'rotate-180'}`}>
+            <path d="M6 9l6 6 6-6" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
         </div>
       </div>
 
-      <div>
-        <Field label="明细名称" required>
-          <input className="form-input" value={account.detailName} onChange={e => onChange('detailName', e.target.value)} placeholder="请输入明细名称"/>
-        </Field>
-        <Field label="开户主体" required>
-          <SelectField value={account.subject} onChange={v => onChange('subject', v)} placeholder="请选择" options={subjects}/>
-        </Field>
-        <Field label="类型" required>
-          <SelectField value={account.type} onChange={v => onChange('type', v)} placeholder="请选择类型" options={typeOptions}/>
-        </Field>
-        <Field label="一级行业">
-          <SelectField value={account.industryL1} onChange={v => { onChange('industryL1', v); onChange('industryL2', '') }} placeholder="暂无" options={industryL1Options}/>
-        </Field>
-        <Field label="二级行业">
-          <SelectField value={account.industryL2} onChange={v => onChange('industryL2', v)} placeholder={account.industryL1 ? '请选择二级行业' : '暂无'} options={industryL2Opts}/>
-        </Field>
-        <Field label="关键词">
-          <input className="form-input" value={account.keywords} onChange={e => onChange('keywords', e.target.value)} placeholder="请输入关键词"/>
-        </Field>
-        <Field label="开户ID总数" required>
-          <input type="number" className="form-input" value={account.totalIds} onChange={e => onChange('totalIds', e.target.value)} placeholder="请输入开户ID总数"/>
-        </Field>
-        <Field label="媒介开户人" required>
-          <SelectField value={account.operator} onChange={v => onChange('operator', v)} placeholder="请选择媒介开户人" options={['冯孙杰', '张朔', '李基彬', '刘欢', '王靖雅', '潘建民', '陈志伟', '孙迢', '高丽岩', '孟丽珊']}/>
-        </Field>
-        <Field label="备注" last>
-          <textarea rows={2} className="form-input resize-none w-full" value={account.remark} onChange={e => onChange('remark', e.target.value)} placeholder="请输入备注（可空）"/>
-        </Field>
-      </div>
+      {!collapsed && (
+        <div className="border-t border-ink-100">
+          <Field label="明细名称" required>
+            <input className="form-input" value={account.detailName} onChange={e => onChange('detailName', e.target.value)} placeholder="请输入明细名称"/>
+          </Field>
+          <Field label="开户主体" required>
+            <SelectField value={account.subject} onChange={v => onChange('subject', v)} placeholder="请选择" options={subjects}/>
+          </Field>
+          <Field label="类型" required>
+            <SelectField value={account.type} onChange={v => onChange('type', v)} placeholder="请选择类型" options={typeOptions}/>
+          </Field>
+          <Field label="一级行业">
+            <SelectField value={account.industryL1} onChange={v => { onChange('industryL1', v); onChange('industryL2', '') }} placeholder="暂无" options={industryL1Options}/>
+          </Field>
+          <Field label="二级行业">
+            <SelectField value={account.industryL2} onChange={v => onChange('industryL2', v)} placeholder={account.industryL1 ? '请选择二级行业' : '暂无'} options={industryL2Opts}/>
+          </Field>
+          <Field label="关键词">
+            <input className="form-input" value={account.keywords} onChange={e => onChange('keywords', e.target.value)} placeholder="请输入关键词"/>
+          </Field>
+          <Field label="开户ID总数" required>
+            <input type="number" className="form-input" value={account.totalIds} onChange={e => onChange('totalIds', e.target.value)} placeholder="请输入开户ID总数"/>
+          </Field>
+          <Field label="媒介开户人" required>
+            <SelectField value={account.operator} onChange={v => onChange('operator', v)} placeholder="请选择媒介开户人" options={['冯孙杰', '张朔', '李基彬', '刘欢', '王靖雅', '潘建民', '陈志伟', '孙迢', '高丽岩', '孟丽珊']}/>
+          </Field>
+          <Field label="备注" last>
+            <textarea rows={2} className="form-input resize-none w-full" value={account.remark} onChange={e => onChange('remark', e.target.value)} placeholder="请输入备注（可空）"/>
+          </Field>
+        </div>
+      )}
     </div>
   )
 }

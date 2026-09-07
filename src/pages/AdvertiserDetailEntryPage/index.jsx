@@ -90,48 +90,111 @@ function BatchImportPanel() {
   )
 }
 
-// ===== 手工录入面板（图4） =====
+// ===== 手工录入面板（卡片化竖排 + 可折叠） =====
 function ManualEntryPanel() {
   const [rows, setRows] = useState([blankRow()])
+  // 默认全部展开：折叠集合为空；折叠时记录 idx
+  const [collapsed, setCollapsed] = useState(() => new Set())
   const addRow = () => setRows(arr => [...arr, blankRow()])
   const updateRow = (idx, key, val) => setRows(arr => arr.map((r, i) => i === idx ? { ...r, [key]: val } : r))
   const removeRow = (idx) => setRows(arr => arr.length === 1 ? arr : arr.filter((_, i) => i !== idx))
+  const toggleCollapse = (idx) => setCollapsed(prev => {
+    const next = new Set(prev)
+    next.has(idx) ? next.delete(idx) : next.add(idx)
+    return next
+  })
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
+      {/* 卡片堆叠：每张卡片内部纵向排列字段 */}
+      <div className="space-y-2">
+        {rows.map((row, idx) => {
+          const isCollapsed = collapsed.has(idx)
+          // 折叠摘要：ID / 比例 / 时间区间
+          const advText = row.advId || '未填写'
+          const rateText = row.rebateRate !== '' && row.rebateRate != null ? `${row.rebateRate}%` : '--'
+          const rangeText = (row.startDate || row.endDate)
+            ? `${row.startDate || '开始'} — ${row.endDate || '结束'}`
+            : '--'
+
+          return (
+            <div key={idx} className="bg-white border border-ink-100 rounded-md">
+              {/* 顶部：行号 + 摘要 + 删除 + 折叠图标（整行可点击折叠） */}
+              <div
+                onClick={() => toggleCollapse(idx)}
+                className="flex items-center justify-between px-3 py-2.5 tap active:bg-ink-50 cursor-pointer rounded-md"
+              >
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <span className="text-[12px] text-ink-700 font-medium shrink-0"># {idx + 1}</span>
+                  {isCollapsed && (
+                    <div className="flex items-center gap-2 min-w-0 text-[12px] text-ink-500 truncate">
+                      <span className="truncate">ID: {advText}</span>
+                      <span className="shrink-0">{rateText}</span>
+                      <span className="shrink-0">{rangeText}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {rows.length > 1 && (
+                    <button
+                      onClick={e => { e.stopPropagation(); removeRow(idx) }}
+                      className="text-[12px] text-ink-500 px-2 py-0.5 rounded tap active:bg-ink-100"
+                    >
+                      删除
+                    </button>
+                  )}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className={`transition-transform ${isCollapsed ? '' : 'rotate-180'}`}>
+                    <path d="M6 9l6 6 6-6" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+              </div>
+
+              {/* 展开态：完整字段 */}
+              {!isCollapsed && (
+                <div className="px-3 pb-3 pt-1 space-y-3 border-t border-ink-100">
+                  {/* 字段 1：广告主 ID（全宽） */}
+                  <div>
+                    <div className="text-[12px] text-ink-500 mb-1">
+                      <span className="text-danger mr-0.5">*</span>广告主 ID
+                    </div>
+                    <input className="form-input w-full" value={row.advId} onChange={e => updateRow(idx, 'advId', e.target.value)} placeholder="请输入广告主ID"/>
+                  </div>
+
+                  {/* 字段 2：前返比例 */}
+                  <div>
+                    <div className="text-[12px] text-ink-500 mb-1">
+                      <span className="text-danger mr-0.5">*</span>前返比例（%）
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <input type="number" className="form-input flex-1 min-w-0" value={row.rebateRate} onChange={e => updateRow(idx, 'rebateRate', e.target.value)} placeholder="请输入前返比例"/>
+                      <span className="text-[12px] text-ink-500 shrink-0">%</span>
+                    </div>
+                  </div>
+
+                  {/* 字段 3+4：有效时间（起止并排，等宽） */}
+                  <div>
+                    <div className="text-[12px] text-ink-500 mb-1">
+                      <span className="text-danger mr-0.5">*</span>有效时间
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input type="date" className="form-input flex-1 min-w-0" value={row.startDate} onChange={e => updateRow(idx, 'startDate', e.target.value)}/>
+                      <span className="text-[12px] text-ink-400 shrink-0">—</span>
+                      <input type="date" className="form-input flex-1 min-w-0" value={row.endDate} onChange={e => updateRow(idx, 'endDate', e.target.value)}/>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* 新增一行：放在所有卡片底部下方 */}
       <button onClick={addRow}
-        className="h-7 px-3 bg-brand text-white rounded text-[12px] flex items-center gap-1 tap active:opacity-90">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth="2.2" strokeLinecap="round"/></svg>
+        className="w-full h-9 border border-dashed border-ink-300 rounded text-[13px] text-ink-600 flex items-center justify-center gap-1 tap active:bg-ink-50">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/></svg>
         新增一行
       </button>
-
-      {/* 表头 */}
-      <div className="bg-ink-50 rounded-t-md grid grid-cols-4 text-center text-[12px] text-ink-700 py-2">
-        <div>广告主ID</div>
-        <div>前返比例(%)</div>
-        <div>有效期开始时间</div>
-        <div>有效期结束时间</div>
-      </div>
-
-      {/* 行 */}
-      <div className="space-y-2">
-        {rows.map((row, idx) => (
-          <div key={idx} className="relative bg-white border border-ink-100 rounded-md p-2 space-y-2">
-            <div className="grid grid-cols-4 gap-2">
-              <input className="form-input" value={row.advId} onChange={e => updateRow(idx, 'advId', e.target.value)} placeholder="请输入广告主ID"/>
-              <input type="number" className="form-input" value={row.rebateRate} onChange={e => updateRow(idx, 'rebateRate', e.target.value)} placeholder="请输入前返比例"/>
-              <input type="date" className="form-input" value={row.startDate} onChange={e => updateRow(idx, 'startDate', e.target.value)}/>
-              <input type="date" className="form-input" value={row.endDate} onChange={e => updateRow(idx, 'endDate', e.target.value)}/>
-            </div>
-            {rows.length > 1 && (
-              <button onClick={() => removeRow(idx)}
-                className="absolute -top-2 -right-2 w-6 h-6 bg-white border border-ink-200 rounded-full flex items-center justify-center tap active:bg-ink-50">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="#999" strokeWidth="2" strokeLinecap="round"/></svg>
-              </button>
-            )}
-          </div>
-        ))}
-      </div>
     </div>
   )
 }
